@@ -20,7 +20,7 @@ type redis_client struct {
 	modifyLock sync.RWMutex
 }
 
-func NewRedisClient(conf *config.Config) RedisClientInterface {
+func New(conf *config.Config) RedisClientInterface {
 	opt, err := redis.ParseURL(conf.RDB_DSN)
 	if err != nil {
 		log.Fatal(err)

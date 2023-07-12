@@ -10,7 +10,7 @@ import (
 	// "github.com/rs/cors"
 )
 
-func NewHTTPServer(r *mux.Router, port string) *http.Server {
+func New(r *mux.Router, port string) *http.Server {
 
 	// handler := cors.Default().Handler(r)
 	// handler := cors.AllowAll().Handler(r)

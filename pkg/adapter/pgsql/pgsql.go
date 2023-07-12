@@ -21,7 +21,7 @@ type dabase_pool struct {
 
 var dbpool = &dabase_pool{}
 
-func NewDB(conf *config.Config) *dabase_pool {
+func New(conf *config.Config) *dabase_pool {
 
 	switch conf.DB_DRIVE {
 	case "postgres":

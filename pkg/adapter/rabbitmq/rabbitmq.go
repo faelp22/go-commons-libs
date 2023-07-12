@@ -45,7 +45,7 @@ var rbmpool = &rbm_pool{
 	err: make(chan error),
 }
 
-func NewRabbitMQ(lista_filas []Fila, conf *config.Config) RabbitInterface {
+func New(lista_filas []Fila, conf *config.Config) RabbitInterface {
 	rbmpool = &rbm_pool{
 		queues: lista_filas,
 		conf:   conf,
