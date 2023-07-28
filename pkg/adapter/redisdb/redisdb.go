@@ -2,7 +2,10 @@ package redisdb
 
 import (
 	"context"
+	"fmt"
 	"log"
+	"os"
+	"strconv"
 	"sync"
 	"time"
 
@@ -21,6 +24,52 @@ type redis_client struct {
 }
 
 func New(conf *config.Config) RedisClientInterface {
+
+	SRV_RDB_HOST := os.Getenv("SRV_RDB_HOST")
+	if SRV_RDB_HOST != "" {
+		conf.RDB_HOST = SRV_RDB_HOST
+	} else {
+		log.Println("A variável SRV_RDB_HOST é obrigatória!")
+		os.Exit(1)
+	}
+
+	SRV_RDB_PORT := os.Getenv("SRV_RDB_PORT")
+	if SRV_RDB_PORT != "" {
+		conf.RDB_PORT = SRV_RDB_PORT
+	} else {
+		conf.RDB_PORT = "6379"
+	}
+
+	SRV_RDB_USER := os.Getenv("SRV_RDB_USER")
+	if SRV_RDB_USER != "" {
+		conf.RDB_USER = SRV_RDB_USER
+	} else {
+		log.Println("Se o Redis precisa de [usuário] a variável SRV_RDB_USER é obrigatória!")
+	}
+
+	SRV_RDB_PASS := os.Getenv("SRV_RDB_PASS")
+	if SRV_RDB_PASS != "" {
+		conf.RDB_PASS = SRV_RDB_PASS
+	} else {
+		log.Println("Se o Redis precisa de [senha] a variável SRV_RDB_PASS é obrigatória!")
+	}
+
+	SRV_RDB_DB := os.Getenv("SRV_RDB_DB")
+	if SRV_RDB_DB != "" {
+		conf.RDB_DB, _ = strconv.ParseInt(SRV_RDB_DB, 10, 64)
+	} else {
+		conf.RDB_DB = 0
+	}
+
+	if len(conf.RDB_HOST) > 3 {
+
+		// "redis://<user>:<pass>@localhost:6379/<db>"
+		// https://redis.uptrace.dev/guide/go-redis.html#connecting-to-redis-server
+
+		conf.RDB_DSN = fmt.Sprintf("redis://%s:%s@%s:%s/%v",
+			conf.RDB_USER, conf.RDB_PASS, conf.RDB_HOST, conf.RDB_PORT, conf.RDB_DB)
+	}
+
 	opt, err := redis.ParseURL(conf.RDB_DSN)
 	if err != nil {
 		log.Fatal(err)

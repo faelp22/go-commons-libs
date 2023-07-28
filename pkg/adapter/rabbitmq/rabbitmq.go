@@ -5,26 +5,24 @@ import (
 	"errors"
 	"log"
 	"os"
-	"time"
+	"strconv"
 
 	"github.com/faelp22/go-commons-libs/core/config"
-
 	amqp "github.com/rabbitmq/amqp091-go"
 )
 
+const DEFAULT_MAXX_RECONNECT_TIMES = 3
+
 type RabbitInterface interface {
-	Publish(ctx context.Context, queue_name string, msg *Message) error
-	Consumer(queue_name string, callback func(msg *amqp.Delivery))
-	Connect() error
-	Start(queue_name string, callback func(msg *amqp.Delivery))
+	Connect() (RabbitInterface, error)
+	GetConnect() *rbm_pool
+	SimpleQueueDeclare(sq SimpleQueue) (queue amqp.Queue, err error)
+	Producer(ctx context.Context, pc *ProducerConfig, msg *Message) error
+	Consumer(cc *ConsumerConfig, callback func(msg *amqp.Delivery))
+	StartConsumer(cc *ConsumerConfig, callback func(msg *amqp.Delivery))
 }
 
-type Message struct {
-	Data        []byte
-	ContentType string
-}
-
-type Fila struct {
+type SimpleQueue struct {
 	Name       string     // name
 	Durable    bool       // durable
 	AutoDelete bool       // delete when unused
@@ -34,96 +32,90 @@ type Fila struct {
 }
 
 type rbm_pool struct {
-	conn    *amqp.Connection
-	channel *amqp.Channel
-	queues  []Fila
-	err     chan error
-	conf    *config.Config
+	conn                 *amqp.Connection
+	channel              *amqp.Channel
+	conf                 *config.Config
+	err                  chan error
+	MAXX_RECONNECT_TIMES int
 }
 
 var rbmpool = &rbm_pool{
 	err: make(chan error),
 }
 
-func New(lista_filas []Fila, conf *config.Config) RabbitInterface {
+func New(conf *config.Config) RabbitInterface {
+
+	SRV_RMQ_URI := os.Getenv("SRV_RMQ_URI")
+	if SRV_RMQ_URI != "" {
+		conf.RMQ_URI = SRV_RMQ_URI
+	} else {
+		log.Println("A variável SRV_RMQ_URI é obrigatória!")
+		os.Exit(1)
+	}
+
+	SRV_RMQ_MAXX_RECONNECT_TIMES := os.Getenv("SRV_RMQ_MAXX_RECONNECT_TIMES")
+	if SRV_RMQ_MAXX_RECONNECT_TIMES != "" {
+		conf.RMQ_MAXX_RECONNECT_TIMES, _ = strconv.Atoi(SRV_RMQ_MAXX_RECONNECT_TIMES)
+	} else {
+		conf.RMQ_MAXX_RECONNECT_TIMES = DEFAULT_MAXX_RECONNECT_TIMES
+	}
+
 	rbmpool = &rbm_pool{
-		queues: lista_filas,
-		conf:   conf,
-		err:    make(chan error),
+		conf: conf,
+		err:  make(chan error),
 	}
 	return rbmpool
 }
 
-func (rbm *rbm_pool) Connect() error {
+func (rbm *rbm_pool) Connect() (RabbitInterface, error) {
 
 	var err error
 
 	rbm.conn, err = amqp.Dial(rbm.conf.RMQ_URI)
 	if err != nil {
 		log.Println("Erro to Connect in RabbitMQ")
-		return err
+		return rbm, err
 	}
 
 	go func() {
-		<-rbm.conn.NotifyClose(make(chan *amqp.Error)) //Listen to NotifyClose
+		<-rbm.conn.NotifyClose(make(chan *amqp.Error)) // Listen to Connection NotifyClose
 		rbm.err <- errors.New("connection closed")
 	}()
 
 	rbm.channel, err = rbm.conn.Channel()
 	if err != nil {
 		log.Println("Erro to Connect in RabbitMQ Channel")
-		return err
+		return rbm, err
 	}
 
-	for _, fl := range rbm.queues {
-		_, err = rbm.channel.QueueDeclare(
-			fl.Name,       // name
-			fl.Durable,    // durable
-			fl.AutoDelete, // delete when unused
-			fl.Exclusive,  // exclusive
-			fl.NoWait,     // no-wait
-			fl.Arguments,  // arguments
-		)
-		if err != nil {
-			log.Println("Erro to QueueDeclare Queue in RabbitMQ")
-			return err
-		}
-	}
+	go func() {
+		<-rbm.channel.NotifyClose(make(chan *amqp.Error)) // Listen to Channel NotifyClose
+		rbm.err <- errors.New("channel closed")
+	}()
 
 	log.Println("New RabbitMQ Connect Success")
-	return nil
+
+	return rbm, nil
 }
 
-func (rbm *rbm_pool) Start(queue_name string, callback func(msg *amqp.Delivery)) {
-	isClosed := false
-	count := 0
-	MAXX_RECONNECT_TIMES := 3
-	for {
+func (rbm *rbm_pool) GetConnect() *rbm_pool {
+	return rbm
+}
 
-		if !isClosed {
-			go rbm.Consumer(queue_name, callback)
-		}
+func (rbm *rbm_pool) SimpleQueueDeclare(sq SimpleQueue) (queue amqp.Queue, err error) {
+	queue, err = rbm.channel.QueueDeclare(
+		sq.Name,       // name
+		sq.Durable,    // durable
+		sq.AutoDelete, // delete when unused
+		sq.Exclusive,  // exclusive
+		sq.NoWait,     // no-wait
+		sq.Arguments,  // arguments
+	)
 
-		if count >= MAXX_RECONNECT_TIMES {
-			log.Println("Erro to reconnect 3 times in RabbitMQ")
-			os.Exit(1)
-		}
-
-		if err := <-rbm.err; err != nil {
-			if !isClosed {
-				log.Println("Connection is closed, trying to reconnect in RabbitMQ")
-			}
-			err2 := rbm.Connect()
-			if err2 != nil {
-				go func() { rbm.err <- errors.New("connection closed") }()
-				count++
-				isClosed = true
-				log.Println("Waiting 30 seconds to try again")
-				time.Sleep(time.Duration(30) * time.Second) // wait 30 seconds
-			} else {
-				count = 0
-				isClosed = false
-			}
-		}
+	if err != nil {
+		log.Println("Erro to QueueDeclare Queue in RabbitMQ")
+		return queue, err
 	}
+
+	return queue, nil
 }

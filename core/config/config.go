@@ -8,11 +8,11 @@ const (
 
 type Config struct {
 	Mode string `json:"mode"`
-	HttpConfig
-	MongoDBConfig
-	RedisDBConfig
-	PGSQLConfig
-	RMQConfig
+	*HttpConfig
+	*MongoDBConfig
+	*RedisDBConfig
+	*PGSQLConfig
+	*RMQConfig
 }
 
 type HttpConfig struct {
@@ -20,9 +20,9 @@ type HttpConfig struct {
 }
 
 type MongoDBConfig struct {
-	MDB_URI        string `json:"mdb_uri"`
-	MDB_NAME       string `json:"mdb_name"`
-	MDB_COLLECTION string `json:"mdb_collection"`
+	MDB_URI                string `json:"mdb_uri"`
+	MDB_NAME               string `json:"mdb_name"`
+	MDB_DEFAULT_COLLECTION string `json:"mdb_default_collection"`
 }
 
 type RedisDBConfig struct {
@@ -35,15 +35,19 @@ type RedisDBConfig struct {
 }
 
 type PGSQLConfig struct {
-	DB_DRIVE string `json:"db_drive"`
-	DB_HOST  string `json:"db_host"`
-	DB_PORT  string `json:"db_port"`
-	DB_USER  string `json:"db_user"`
-	DB_PASS  string `json:"db_pass"`
-	DB_NAME  string `json:"db_name"`
-	DB_DSN   string `json:"-"`
+	DB_DRIVE                  string `json:"db_drive"`
+	DB_HOST                   string `json:"db_host"`
+	DB_PORT                   string `json:"db_port"`
+	DB_USER                   string `json:"db_user"`
+	DB_PASS                   string `json:"db_pass"`
+	DB_NAME                   string `json:"db_name"`
+	DB_DSN                    string `json:"-"`
+	DB_SET_MAX_OPEN_CONNS     int    `json:"db_set_max_open_conns"`
+	DB_SET_MAX_IDLE_CONNS     int    `json:"db_set_max_idle_conns"`
+	DB_SET_CONN_MAX_LIFE_TIME int    `json:"db_set_conn_max_life_time"`
 }
 
 type RMQConfig struct {
-	RMQ_URI string `json:"rmq_uri"`
+	RMQ_URI                  string `json:"rmq_uri"`
+	RMQ_MAXX_RECONNECT_TIMES int    `json:"rmq_maxx_reconnect_times"`
 }

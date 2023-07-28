@@ -7,13 +7,25 @@ import (
 	amqp "github.com/rabbitmq/amqp091-go"
 )
 
-func (rbm *rbm_pool) Publish(ctx context.Context, queue_name string, msg *Message) error {
+type Message struct {
+	Data        []byte
+	ContentType string
+}
+
+type ProducerConfig struct {
+	Exchange  string
+	Key       string
+	Mandatory bool
+	Immediate bool
+}
+
+func (rbm *rbm_pool) Producer(ctx context.Context, pc *ProducerConfig, msg *Message) error {
 
 	err := rbm.channel.PublishWithContext(ctx,
-		"",         // exchange
-		queue_name, // routing key
-		false,      // mandatory
-		false,      // immediate
+		pc.Exchange,  // exchange
+		pc.Key,       // routing key
+		pc.Mandatory, // mandatory
+		pc.Immediate, // immediate
 		amqp.Publishing{
 			Body:        msg.Data,
 			ContentType: msg.ContentType,
