@@ -20,7 +20,6 @@ type ConsumerConfig struct {
 }
 
 func (rbm *rbm_pool) Consumer(cc *ConsumerConfig, callback func(msg *amqp.Delivery)) {
-
 	HOSTNAME := os.Getenv("HOSTNAME")
 	if HOSTNAME == "" {
 		cc.Consumer = "worker-read-msg"
