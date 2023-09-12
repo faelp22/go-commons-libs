@@ -8,14 +8,16 @@ import (
 
 	"github.com/faelp22/go-commons-libs/core/config"
 	"github.com/gorilla/mux"
-	// "github.com/rs/cors"
+	"github.com/rs/cors"
 )
 
-func New(r *mux.Router, conf *config.Config) *http.Server {
+func New(r *mux.Router, conf *config.Config, opts ...cors.Options) *http.Server {
+	var handler http.Handler
+	handler = r
 
-	// handler := cors.Default().Handler(r)
-	// handler := cors.AllowAll().Handler(r)
-	handler := r
+	if opts != nil {
+		handler = cors.New(opts[0]).Handler(r)
+	}
 
 	SRV_PORT := os.Getenv("SRV_PORT")
 	if SRV_PORT != "" {

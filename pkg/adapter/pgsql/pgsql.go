@@ -1,6 +1,7 @@
 package pgsql
 
 import (
+	"context"
 	"database/sql"
 	"fmt"
 	"log"
@@ -14,11 +15,14 @@ import (
 )
 
 type DatabaseInterface interface {
-	GetDB() (DB *sql.DB)
+	GetDB() *sql.DB
+	GetConn() *sql.Conn
+	CloseConnection() error
 }
 
 type dabase_pool struct {
-	DB *sql.DB
+	db   *sql.DB
+	conn *sql.Conn
 }
 
 var dbpool = &dabase_pool{}
@@ -92,16 +96,24 @@ func New(conf *config.Config) *dabase_pool {
 		conf.DB_SET_CONN_MAX_LIFE_TIME = 5 // Max Open Conn Interval is 5 minutes
 	}
 
+	SRV_DB_SSL_MODE := os.Getenv("SRV_DB_SSL_MODE")
+	if SRV_DB_SSL_MODE != "" {
+		conf.SRV_DB_SSL_MODE, _ = strconv.ParseBool(SRV_DB_SSL_MODE)
+	} else {
+		conf.SRV_DB_SSL_MODE = false // SSL Mode false by default
+	}
+
 	switch conf.DB_DRIVE {
 	case "postgres":
-
+		sslMode := "require"
 		if conf.Mode != config.PRODUCTION {
-			conf.DB_DSN = fmt.Sprintf("host=%s port=%s user=%s password=%s dbname=%s sslmode=disable",
-				conf.DB_HOST, conf.DB_PORT, conf.DB_USER, conf.DB_PASS, conf.DB_NAME)
-		} else {
-			conf.DB_DSN = fmt.Sprintf("host=%s port=%s user=%s password=%s dbname=%s sslmode=require",
-				conf.DB_HOST, conf.DB_PORT, conf.DB_USER, conf.DB_PASS, conf.DB_NAME)
+			if !conf.SRV_DB_SSL_MODE {
+				sslMode = "disable"
+			}
 		}
+
+		conf.DB_DSN = fmt.Sprintf("host=%s port=%s user=%s password=%s dbname=%s sslmode=%s",
+			conf.DB_HOST, conf.DB_PORT, conf.DB_USER, conf.DB_PASS, conf.DB_NAME, sslMode)
 
 		dbpool = pgConn(conf)
 	default:
@@ -111,37 +123,51 @@ func New(conf *config.Config) *dabase_pool {
 	return dbpool
 }
 
-func (d *dabase_pool) GetDB() (DB *sql.DB) {
-	return d.DB
+func (d *dabase_pool) GetDB() *sql.DB {
+	return d.db
+}
+
+func (d *dabase_pool) GetConn() *sql.Conn {
+	return d.conn
 }
 
 func pgConn(conf *config.Config) *dabase_pool {
-
-	if dbpool != nil && dbpool.DB != nil {
-
+	if dbpool != nil && dbpool.db != nil && dbpool.conn != nil {
 		return dbpool
+	}
 
-	} else {
+	db, err := sql.Open(conf.DB_DRIVE, conf.DB_DSN)
+	if err != nil {
+		log.Fatal(err)
+	}
 
-		db, err := sql.Open(conf.DB_DRIVE, conf.DB_DSN)
-		if err != nil {
-			log.Fatal(err)
-		}
-		// defer db.Close()
+	db.SetMaxOpenConns(conf.DB_SET_MAX_OPEN_CONNS)
+	db.SetMaxIdleConns(conf.DB_SET_MAX_IDLE_CONNS)
+	db.SetConnMaxLifetime(time.Duration(conf.DB_SET_CONN_MAX_LIFE_TIME) * time.Minute)
 
-		db.SetMaxOpenConns(conf.DB_SET_MAX_OPEN_CONNS)
-		db.SetMaxIdleConns(conf.DB_SET_MAX_IDLE_CONNS)
-		db.SetConnMaxLifetime(time.Duration(conf.DB_SET_CONN_MAX_LIFE_TIME) * time.Minute)
+	if err = db.Ping(); err != nil {
+		log.Fatal(err)
+	}
 
-		err = db.Ping()
-		if err != nil {
-			log.Fatal(err)
-		}
+	conn, err := db.Conn(context.Background())
+	if err != nil {
+		log.Fatal(err)
+	}
 
-		dbpool = &dabase_pool{
-			DB: db,
-		}
+	dbpool = &dabase_pool{
+		db:   db,
+		conn: conn,
 	}
 
 	return dbpool
+}
+
+func (d *dabase_pool) CloseConnection() error {
+	if err := d.conn.Close(); err != nil {
+		log.Println("error closing pgsql connection", err)
+		return err
+	}
+
+	log.Println("PGSQL connection closed successfully")
+	return nil
 }

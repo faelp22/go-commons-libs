@@ -38,6 +38,7 @@ func (rbm *rbm_pool) Consumer(cc *ConsumerConfig, callback func(msg *amqp.Delive
 	if err != nil {
 		log.Println("Failed to register a consumer")
 		log.Println(err)
+		return
 	}
 
 	go func() {
