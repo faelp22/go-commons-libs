@@ -45,6 +45,7 @@ type PGSQLConfig struct {
 	DB_SET_MAX_OPEN_CONNS     int    `json:"db_set_max_open_conns"`
 	DB_SET_MAX_IDLE_CONNS     int    `json:"db_set_max_idle_conns"`
 	DB_SET_CONN_MAX_LIFE_TIME int    `json:"db_set_conn_max_life_time"`
+	SRV_DB_SSL_MODE           bool   `json:"srv_db_ssl_mode"`
 }
 
 type RMQConfig struct {

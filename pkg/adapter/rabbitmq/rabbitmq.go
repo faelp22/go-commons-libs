@@ -18,6 +18,8 @@ type RabbitInterface interface {
 	Connect() (RabbitInterface, error)
 	// GetConnect gets the active connection
 	GetConnect() *rbm_pool
+	// CloseConnection closes the active connection
+	CloseConnection() error
 
 	// SimpleQueueDeclare used to declare a single Queue into RabbitMQ and returns it or an error
 	SimpleQueueDeclare(sq Queue) (queue amqp.Queue, err error)
@@ -119,4 +121,14 @@ func (rbm *rbm_pool) Connect() (RabbitInterface, error) {
 
 func (rbm *rbm_pool) GetConnect() *rbm_pool {
 	return rbm
+}
+
+func (rbm *rbm_pool) CloseConnection() error {
+	if err := rbm.conn.Close(); err != nil {
+		log.Println("error closing rabbit connection", err)
+		return err
+	}
+
+	log.Println("RabbitMQ connection closed successfully")
+	return nil
 }
