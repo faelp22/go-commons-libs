@@ -13,6 +13,7 @@ type Config struct {
 	*RedisDBConfig
 	*PGSQLConfig
 	*RMQConfig
+	*BlobStorage
 }
 
 type HttpConfig struct {
@@ -51,4 +52,11 @@ type PGSQLConfig struct {
 type RMQConfig struct {
 	RMQ_URI                  string `json:"rmq_uri"`
 	RMQ_MAXX_RECONNECT_TIMES int    `json:"rmq_maxx_reconnect_times"`
+}
+
+type BlobStorage struct {
+	BS_ACCOUNT_NAME    string `json:"account_name"`
+	BS_ACCOUNT_KEY     string `json:"account_key"`
+	BS_SERVICE_URL     string `json:"service_url"`
+	BS_URL_EXPIRY_TIME int64  `json:"bs_url_expiry_time"`
 }
