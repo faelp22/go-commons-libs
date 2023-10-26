@@ -11,7 +11,7 @@ import (
 	amqp "github.com/rabbitmq/amqp091-go"
 )
 
-const DEFAULT_MAX_RECONNECT_TIMES = 3
+const DEFAULT_MAX_RECONNECT_TIMES = 3 // 3 attempts
 
 type RabbitInterface interface {
 	// Connect creates a new connection and returns RabbitInterface to access functions and error

@@ -115,7 +115,7 @@ func (rs *redis_client) SaveData(ctx context.Context, key string, data []byte, t
 	}
 
 	result := rs.rdb.Set(ctx, key, data, timer)
-	if result.Val() == "1" {
+	if result.Val() == "1" || result.Val() == "OK" {
 		ok = true
 	}
 
