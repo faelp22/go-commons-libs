@@ -1,0 +1,12 @@
+version: '3.9'
+
+services:
+
+  dbredis:
+    image: redis:7.0.7
+    # restart: always
+    # command: redis-server --requirepass supersenha
+    ports:
+      - "6379:6379"
+    volumes:
+      - ./tmp_data/redis_data:/data

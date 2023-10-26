@@ -11,12 +11,11 @@ import (
 	"github.com/rs/cors"
 )
 
-func New(r *mux.Router, conf *config.Config, opts ...cors.Options) *http.Server {
-	var handler http.Handler
-	handler = r
+func New(r *mux.Router, conf *config.Config, opts *cors.Options) *http.Server {
+	var handler http.Handler = r
 
 	if opts != nil {
-		handler = cors.New(opts[0]).Handler(r)
+		handler = cors.New(*opts).Handler(r)
 	}
 
 	SRV_PORT := os.Getenv("SRV_PORT")
