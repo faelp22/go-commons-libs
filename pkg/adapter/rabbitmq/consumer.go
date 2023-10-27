@@ -2,12 +2,17 @@ package rabbitmq
 
 import (
 	"errors"
+	"fmt"
 	"log"
 	"os"
+	"strings"
 	"time"
 
+	"github.com/google/uuid"
 	amqp "github.com/rabbitmq/amqp091-go"
 )
+
+var OldConsumerName string
 
 type ConsumerConfig struct {
 	Queue     string
@@ -20,10 +25,17 @@ type ConsumerConfig struct {
 }
 
 func (rbm *rbm_pool) Consumer(cc *ConsumerConfig, callback func(msg *amqp.Delivery)) {
-	HOSTNAME := os.Getenv("HOSTNAME")
-	if HOSTNAME == "" {
-		cc.Consumer = "worker-read-msg"
+
+	if cc.Consumer == "" {
+		cc.Consumer = fmt.Sprintf("worker-read-msg@%s", uuid.New().String()[:8])
+	} else if cc.Consumer == OldConsumerName {
+		name := strings.Split(OldConsumerName, "@")[0]
+		cc.Consumer = fmt.Sprintf("%s@%s", name, uuid.New().String()[:8])
+	} else {
+		cc.Consumer = fmt.Sprintf("%s@%s", cc.Consumer, uuid.New().String()[:8])
 	}
+
+	OldConsumerName = cc.Consumer
 
 	msgs, err := rbm.channel.Consume(
 		cc.Queue,     // queue
@@ -51,11 +63,10 @@ func (rbm *rbm_pool) Consumer(cc *ConsumerConfig, callback func(msg *amqp.Delive
 }
 
 func (rbm *rbm_pool) StartConsumer(cc *ConsumerConfig, callback func(msg *amqp.Delivery)) {
-	isClosed := false
 	count := 0
 	for {
 
-		if !isClosed {
+		if rbm.connStatus {
 			go rbm.Consumer(cc, callback)
 		}
 
@@ -65,21 +76,19 @@ func (rbm *rbm_pool) StartConsumer(cc *ConsumerConfig, callback func(msg *amqp.D
 		}
 
 		if err := <-rbm.err; err != nil {
-			if !isClosed {
-				log.Println("Connection is closed, trying to reconnect in RabbitMQ")
-			}
 
-			rb_conn, err2 := rbm.Connect()
-			if err2 != nil {
-				go func() { rbm.err <- errors.New("connection closed") }()
+			log.Println("Connection is closed, trying to reconnect in RabbitMQ")
+
+			rb_conn, err := rbm.Connect()
+			if err != nil {
+				go func() { rbm.err <- errors.New("connection closed re trying") }()
 				count++
-				isClosed = true
 				log.Println("Waiting 30 seconds to try again")
-				time.Sleep(time.Duration(30) * time.Second) // wait 30 seconds
+				time.Sleep(30 * time.Second) // wait 30 seconds
 			} else {
 				count = 0
-				isClosed = false
 				rbm.conn = rb_conn.GetConnect().conn
+				rbm.connStatus = rb_conn.GetConnect().connStatus
 			}
 		}
 	}

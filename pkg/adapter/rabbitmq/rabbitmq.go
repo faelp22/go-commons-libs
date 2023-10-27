@@ -18,6 +18,8 @@ type RabbitInterface interface {
 	Connect() (RabbitInterface, error)
 	// GetConnect gets the active connection
 	GetConnect() *rbm_pool
+	// GetConnectStatus get the status of connection
+	GetConnectStatus() bool
 	// CloseConnection closes the active connection
 	CloseConnection() error
 
@@ -60,10 +62,7 @@ type rbm_pool struct {
 	conf                 *config.Config
 	err                  chan error
 	MAXX_RECONNECT_TIMES int
-}
-
-var rbmpool = &rbm_pool{
-	err: make(chan error),
+	connStatus           bool
 }
 
 func New(conf *config.Config) RabbitInterface {
@@ -82,9 +81,10 @@ func New(conf *config.Config) RabbitInterface {
 		conf.RMQ_MAXX_RECONNECT_TIMES = DEFAULT_MAX_RECONNECT_TIMES
 	}
 
-	rbmpool = &rbm_pool{
-		conf: conf,
-		err:  make(chan error),
+	rbmpool := &rbm_pool{
+		conf:       conf,
+		err:        make(chan error),
+		connStatus: false,
 	}
 	return rbmpool
 }
@@ -92,16 +92,19 @@ func New(conf *config.Config) RabbitInterface {
 func (rbm *rbm_pool) Connect() (RabbitInterface, error) {
 	var err error
 
+	if rbm.connStatus {
+		log.Println("There is already a connection, returning Conn")
+		return rbm, nil
+	}
+
 	rbm.conn, err = amqp.Dial(rbm.conf.RMQ_URI)
 	if err != nil {
 		log.Println("Erro to Connect in RabbitMQ")
 		return rbm, err
 	}
 
-	go func() {
-		<-rbm.conn.NotifyClose(make(chan *amqp.Error)) // Listen to Connection NotifyClose
-		rbm.err <- errors.New("connection closed")
-	}()
+	notifyConnClose := make(chan *amqp.Error)
+	rbm.conn.NotifyClose(notifyConnClose) // Listen to Connection NotifyClose
 
 	rbm.channel, err = rbm.conn.Channel()
 	if err != nil {
@@ -109,11 +112,22 @@ func (rbm *rbm_pool) Connect() (RabbitInterface, error) {
 		return rbm, err
 	}
 
+	notifyChanClose := make(chan *amqp.Error)
+	rbm.channel.NotifyClose(notifyChanClose) // Listen to Channel NotifyClose
+
 	go func() {
-		<-rbm.channel.NotifyClose(make(chan *amqp.Error)) // Listen to Channel NotifyClose
-		rbm.err <- errors.New("channel closed")
+		select {
+		case <-notifyConnClose:
+			log.Println("connection closed")
+			rbm.err <- errors.New("connection closed")
+			rbm.connStatus = false
+		case <-notifyChanClose:
+			rbm.err <- errors.New("channel closed")
+			rbm.connStatus = false
+		}
 	}()
 
+	rbm.connStatus = true
 	log.Println("New RabbitMQ Connect Success")
 
 	return rbm, nil
@@ -121,6 +135,10 @@ func (rbm *rbm_pool) Connect() (RabbitInterface, error) {
 
 func (rbm *rbm_pool) GetConnect() *rbm_pool {
 	return rbm
+}
+
+func (rbm *rbm_pool) GetConnectStatus() bool {
+	return rbm.connStatus
 }
 
 func (rbm *rbm_pool) CloseConnection() error {
