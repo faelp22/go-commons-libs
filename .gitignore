@@ -7,3 +7,4 @@
 *.exe
 
 **/*tmp_data/
+.env

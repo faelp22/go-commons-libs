@@ -16,6 +16,9 @@ import (
 type RedisClientInterface interface {
 	ReadData(ctx context.Context, key string) (data []byte, err error)
 	SaveData(ctx context.Context, key string, data []byte, timer time.Duration) (ok bool)
+	SaveHSetData(ctx context.Context, key, field string, value interface{}) (ok bool)
+	ReadHSetData(ctx context.Context, key string) (data map[string]string, err error)
+	DeleteAllHSetData(ctx context.Context, key string) (ok bool)
 }
 
 type redis_client struct {
@@ -120,4 +123,42 @@ func (rs *redis_client) SaveData(ctx context.Context, key string, data []byte, t
 	}
 
 	return
+}
+
+// SaveHSetData salva um hashset
+func (rs *redis_client) SaveHSetData(ctx context.Context, key, datakey string, value interface{}) (ok bool) {
+	rs.modifyLock.Lock()
+	defer rs.modifyLock.Unlock()
+	result := rs.rdb.HSet(ctx, key, datakey, value)
+	if result.Err() != nil {
+		log.Println(result.Err().Error())
+		return
+	}
+	return true
+}
+
+// ReadHSetData lê todos os dados de um hashset
+func (rs *redis_client) ReadHSetData(ctx context.Context, key string) (data map[string]string, err error) {
+	rs.modifyLock.Lock()
+	defer rs.modifyLock.Unlock()
+
+	data, err = rs.rdb.HGetAll(ctx, key).Result()
+	if err != nil {
+		return nil, err
+	}
+
+	return
+}
+
+// DeleteAllHSetData deleta todos os dados de um hashset
+func (rs *redis_client) DeleteAllHSetData(ctx context.Context, key string) (ok bool) {
+	rs.modifyLock.Lock()
+	defer rs.modifyLock.Unlock()
+
+	result := rs.rdb.Del(ctx, key)
+	if result.Err() != nil {
+		log.Println(result.Err().Error())
+		return
+	}
+	return true
 }

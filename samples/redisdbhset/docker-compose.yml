@@ -1,0 +1,14 @@
+version: '3.9'
+
+services:
+  dbredis:
+    image: redis:latest
+    container_name: redis
+    command: redis-server --requirepass senhaforte123 --aclfile /etc/redis/users.acl
+    ports:
+      - "6379:6379"
+    volumes:
+      - ./tmp_data/redis_data:/data
+      - ./users.acl:/etc/redis/users.acl
+    environment:
+      - REDIS_PASSWORD=senhaforte123
