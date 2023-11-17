@@ -2,6 +2,7 @@ package blobstorage
 
 import (
 	"context"
+	"github.com/Azure/azure-sdk-for-go/sdk/storage/azblob/blockblob"
 	"io"
 	"log"
 	"os"
@@ -28,7 +29,9 @@ type BlobInterface interface {
 	DownloadFile(ctx context.Context, blobInfo BlobInfo, containerName string) error
 	WriteToFile(blobName string, response azblob.DownloadStreamResponse) error
 	GetSasUrl(blobName, containerName string) (string, error)
-
+	CreateBlockBlobClient(fileName, containerName string) (*blockblob.Client, error)
+	PutBlock(ctx context.Context, blockBlockClient *blockblob.Client, blockID uint16, data *[]byte) (string, error)
+	MountFile(ctx context.Context, blockBlobClient *blockblob.Client, blockIDs *[]string) error
 	// desabilitado
 	// createContainer(ctx context.Context, containerName string) error
 }
@@ -36,6 +39,8 @@ type BlobInterface interface {
 type blobStorage struct {
 	Client            *azblob.Client
 	BlobURLExpiryTime int64
+	cred              *azblob.SharedKeyCredential
+	blobUrl           string
 }
 
 var blobstorage = &blobStorage{}
@@ -59,7 +64,7 @@ func New(conf *config.Config) BlobInterface {
 		os.Exit(1)
 	}
 
-	BLOB_STORAGE_SERVICE_URL := os.Getenv("BLOB_STORAGE_SERVICE_URL")
+	BLOB_STORAGE_SERVICE_URL := os.Getenv("BLOB_STORAGE_ACCOUNT_URL")
 	if BLOB_STORAGE_SERVICE_URL != "" {
 		conf.BS_SERVICE_URL = BLOB_STORAGE_SERVICE_URL
 	} else {
@@ -94,6 +99,8 @@ func New(conf *config.Config) BlobInterface {
 		blobstorage = &blobStorage{
 			Client:            client,
 			BlobURLExpiryTime: conf.BS_URL_EXPIRY_TIME,
+			cred:              cred,
+			blobUrl:           BLOB_STORAGE_SERVICE_URL,
 		}
 	}
 

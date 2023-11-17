@@ -14,6 +14,7 @@ import (
 )
 
 type RedisClientInterface interface {
+	GetClient() *redis.Client
 	ReadData(ctx context.Context, key string) (data []byte, err error)
 	SaveData(ctx context.Context, key string, data []byte, timer time.Duration) (ok bool)
 	SaveHSetData(ctx context.Context, key, field string, value interface{}) (ok bool)
@@ -92,6 +93,10 @@ func New(conf *config.Config) RedisClientInterface {
 	}
 
 	return rc
+}
+
+func (rs *redis_client) GetClient() *redis.Client {
+	return rs.rdb
 }
 
 func (rs *redis_client) ReadData(ctx context.Context, key string) (data []byte, err error) {

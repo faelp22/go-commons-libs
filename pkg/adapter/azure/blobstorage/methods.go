@@ -1,8 +1,11 @@
 package blobstorage
 
 import (
+	"bytes"
 	"context"
+	"encoding/base64"
 	"fmt"
+	"github.com/Azure/azure-sdk-for-go/sdk/storage/azblob/blockblob"
 	"io"
 	"log"
 	"os"
@@ -186,6 +189,40 @@ func (bs *blobStorage) GetSasUrl(blobName, containerName string) (string, error)
 	}
 
 	return tempURL, nil
+}
+
+// CreateBlockBlobClient function to create a block blob client
+// it returns a block blob client and an error
+// the block blob client is used to upload a file in chunks
+// the block blob client is used to mount the file after all the chunks are uploaded
+func (bs *blobStorage) CreateBlockBlobClient(fileName, containerName string) (*blockblob.Client, error) {
+	blobUrl := fmt.Sprintf("%s/%s/%s", bs.blobUrl, containerName, fileName)
+	return blockblob.NewClientWithSharedKeyCredential(blobUrl, bs.cred, nil)
+}
+
+// PutBlock function to upload a chunk of a file
+// it returns the block id and an error
+// the block id is used to mount the file after all the chunks are uploaded
+func (bs *blobStorage) PutBlock(ctx context.Context, blockBlobClient *blockblob.Client, blockID uint16, data *[]byte) (string, error) {
+	base64BlockID := base64.StdEncoding.EncodeToString([]byte(fmt.Sprintf("%06d", blockID)))
+	_, err := blockBlobClient.StageBlock(ctx, base64BlockID, streaming.NopCloser(bytes.NewReader(*data)), nil)
+	if err != nil {
+		return "", err
+	}
+
+	return base64BlockID, nil
+}
+
+// MountFile function to mount a file after all the chunks are uploaded
+// it returns an error
+// the block ids are used to mount the file
+func (bs *blobStorage) MountFile(ctx context.Context, blockBlobClient *blockblob.Client, blockIDs *[]string) error {
+	_, err := blockBlobClient.CommitBlockList(ctx, *blockIDs, nil)
+	if err != nil {
+		return err
+	}
+
+	return nil
 }
 
 // func (bs *blobStorage) createContainer(ctx context.Context, containerName string) error {
