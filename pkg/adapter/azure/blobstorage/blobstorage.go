@@ -68,7 +68,7 @@ func New(conf *config.Config) BlobInterface {
 	if BLOB_STORAGE_SERVICE_URL != "" {
 		conf.BS_SERVICE_URL = BLOB_STORAGE_SERVICE_URL
 	} else {
-		log.Println("A variável BLOB_STORAGE_SERVICE_URL é obrigatória!")
+		log.Println("A variável BLOB_STORAGE_ACCOUNT_URL é obrigatória!")
 		os.Exit(1)
 	}
 
