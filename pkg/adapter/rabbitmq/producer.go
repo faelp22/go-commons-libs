@@ -19,7 +19,7 @@ type ProducerConfig struct {
 	Immediate bool
 }
 
-func (rbm *rbm_pool) Producer(ctx context.Context, pc *ProducerConfig, msg *Message) error {
+func (rbm *Rbm_pool) Producer(ctx context.Context, pc *ProducerConfig, msg *Message) error {
 	err := rbm.channel.PublishWithContext(ctx,
 		pc.Exchange,  // exchange
 		pc.Key,       // routing key

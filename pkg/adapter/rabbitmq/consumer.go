@@ -24,7 +24,7 @@ type ConsumerConfig struct {
 	Args      amqp.Table
 }
 
-func (rbm *rbm_pool) Consumer(cc *ConsumerConfig, callback func(msg *amqp.Delivery)) {
+func (rbm *Rbm_pool) Consumer(cc *ConsumerConfig, callback func(msg *amqp.Delivery)) {
 
 	if cc.Consumer == "" {
 		cc.Consumer = fmt.Sprintf("worker-read-msg@%s", uuid.New().String()[:8])
@@ -62,7 +62,7 @@ func (rbm *rbm_pool) Consumer(cc *ConsumerConfig, callback func(msg *amqp.Delive
 	}()
 }
 
-func (rbm *rbm_pool) StartConsumer(cc *ConsumerConfig, callback func(msg *amqp.Delivery)) {
+func (rbm *Rbm_pool) StartConsumer(cc *ConsumerConfig, callback func(msg *amqp.Delivery)) {
 	count := 0
 	for {
 
