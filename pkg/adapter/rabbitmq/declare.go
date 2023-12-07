@@ -31,7 +31,7 @@ type Exchange struct {
 	Arguments  amqp.Table // arguments
 }
 
-func (rbm *rbm_pool) SimpleQueueDeclare(sq Queue) (queue amqp.Queue, err error) {
+func (rbm *Rbm_pool) SimpleQueueDeclare(sq Queue) (queue amqp.Queue, err error) {
 	queue, err = rbm.channel.QueueDeclare(
 		sq.Name,       // name
 		sq.Durable,    // durable
@@ -49,7 +49,7 @@ func (rbm *rbm_pool) SimpleQueueDeclare(sq Queue) (queue amqp.Queue, err error) 
 	return queue, nil
 }
 
-func (rbm *rbm_pool) CompleteQueueDeclare(cq []Queue) []error {
+func (rbm *Rbm_pool) CompleteQueueDeclare(cq []Queue) []error {
 	var listErrors []error
 	for _, queue := range cq {
 		if _, err := rbm.channel.QueueDeclare(
@@ -83,7 +83,7 @@ func (rbm *rbm_pool) CompleteQueueDeclare(cq []Queue) []error {
 	return listErrors
 }
 
-func (rbm *rbm_pool) SimpleExchangeDeclare(se Exchange) error {
+func (rbm *Rbm_pool) SimpleExchangeDeclare(se Exchange) error {
 	if err := rbm.channel.ExchangeDeclare(
 		se.Name,       // name
 		se.Kind,       // kind of exchange. ex: 'direct' | 'topic' | 'fanout'
@@ -100,7 +100,7 @@ func (rbm *rbm_pool) SimpleExchangeDeclare(se Exchange) error {
 	return nil
 }
 
-func (rbm *rbm_pool) CompleteExchangeDeclare(ce []Exchange) []error {
+func (rbm *Rbm_pool) CompleteExchangeDeclare(ce []Exchange) []error {
 	var listErrors []error
 	for _, exchange := range ce {
 		if err := rbm.channel.ExchangeDeclare(
@@ -120,7 +120,7 @@ func (rbm *rbm_pool) CompleteExchangeDeclare(ce []Exchange) []error {
 	return listErrors
 }
 
-func (rbm *rbm_pool) CompleteDeclare(cq []Queue, ce []Exchange) []error {
+func (rbm *Rbm_pool) CompleteDeclare(cq []Queue, ce []Exchange) []error {
 	var listErrors []error
 	if err := rbm.CompleteExchangeDeclare(ce); err != nil {
 		listErrors = append(listErrors, err...)

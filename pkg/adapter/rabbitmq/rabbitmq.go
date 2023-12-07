@@ -17,7 +17,7 @@ type RabbitInterface interface {
 	// Connect creates a new connection and returns RabbitInterface to access functions and error
 	Connect() (RabbitInterface, error)
 	// GetConnect gets the active connection
-	GetConnect() *rbm_pool
+	GetConnect() *Rbm_pool
 	// GetConnectStatus get the status of connection
 	GetConnectStatus() bool
 	// CloseConnection closes the active connection
@@ -56,7 +56,7 @@ type RabbitInterface interface {
 	StartConsumer(cc *ConsumerConfig, callback func(msg *amqp.Delivery))
 }
 
-type rbm_pool struct {
+type Rbm_pool struct {
 	conn                 *amqp.Connection
 	channel              *amqp.Channel
 	conf                 *config.Config
@@ -81,7 +81,7 @@ func New(conf *config.Config) RabbitInterface {
 		conf.RMQ_MAXX_RECONNECT_TIMES = DEFAULT_MAX_RECONNECT_TIMES
 	}
 
-	rbmpool := &rbm_pool{
+	rbmpool := &Rbm_pool{
 		conf:       conf,
 		err:        make(chan error),
 		connStatus: false,
@@ -89,7 +89,7 @@ func New(conf *config.Config) RabbitInterface {
 	return rbmpool
 }
 
-func (rbm *rbm_pool) Connect() (RabbitInterface, error) {
+func (rbm *Rbm_pool) Connect() (RabbitInterface, error) {
 	var err error
 
 	if rbm.connStatus {
@@ -133,15 +133,15 @@ func (rbm *rbm_pool) Connect() (RabbitInterface, error) {
 	return rbm, nil
 }
 
-func (rbm *rbm_pool) GetConnect() *rbm_pool {
+func (rbm *Rbm_pool) GetConnect() *Rbm_pool {
 	return rbm
 }
 
-func (rbm *rbm_pool) GetConnectStatus() bool {
+func (rbm *Rbm_pool) GetConnectStatus() bool {
 	return rbm.connStatus
 }
 
-func (rbm *rbm_pool) CloseConnection() error {
+func (rbm *Rbm_pool) CloseConnection() error {
 	if err := rbm.conn.Close(); err != nil {
 		log.Println("error closing rabbit connection", err)
 		return err
