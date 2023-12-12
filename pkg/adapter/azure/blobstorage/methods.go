@@ -195,8 +195,15 @@ func (bs *blobStorage) GetSasUrl(blobName, containerName string) (string, error)
 // it returns a block blob client and an error
 // the block blob client is used to upload a file in chunks
 // the block blob client is used to mount the file after all the chunks are uploaded
+// containerName is a path to the file in the blob storage and start with slash (e.g. /foo/bar)
+// fileName is the name of the file in the blob storage (e.g. foo.txt)
+// by default the blobURL ends with a slash (e.g. https://foo.blob.core.windows.net/)
 func (bs *blobStorage) CreateBlockBlobClient(fileName, containerName string) (*blockblob.Client, error) {
-	blobUrl := fmt.Sprintf("%s/%s/%s", bs.blobUrl, containerName, fileName)
+	url := bs.blobUrl
+	if url[len(url)-1] == '/' {
+		url = url[:len(url)-1]
+	}
+	blobUrl := fmt.Sprintf("%s/%s/%s", url, containerName, fileName)
 	return blockblob.NewClientWithSharedKeyCredential(blobUrl, bs.cred, nil)
 }
 
