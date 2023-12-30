@@ -63,16 +63,39 @@ func LoggingMiddleware(next http.Handler) http.Handler {
 			Str("AppName", conf.AppName).
 			Str("AppVersion", conf.AppVersion).
 			Str("AppCommitShortSha", conf.AppCommitShortSha).
+			Str("UserAgent", r.UserAgent()).
 			Str("HttpVersion", r.Proto).
 			Str("Method", r.Method).
 			Str("Host", r.Host).
+			Str("RemoteAddr", r.RemoteAddr).
+			Str("UserRealRemoteAddr", userIP(r)).
 			Str("Path", r.URL.Path).
 			Str("Duration", fmt.Sprintf("%v", time.Since(start))).
 			Str("StatusCode", fmt.Sprintf("%v", srw.status)).
 			// Str("RawQuery", r.URL.RawQuery).
 			Msg(http.StatusText(srw.status))
 
+		if conf.AppLogLevel == log.TraceLevel.String() {
+			trac := conf.HttpConfig.Logger.Trace()
+			for k, v := range r.Header {
+				trac.Str(k, fmt.Sprintf("%v", v))
+			}
+			trac.Msg("Log Tracer")
+		}
+
 	})
+
+}
+
+func userIP(r *http.Request) string {
+	IPAddress := r.Header.Get("X-Real-Ip")
+	if IPAddress == "" {
+		IPAddress = r.Header.Get("X-Forwarded-For")
+	}
+	if IPAddress == "" {
+		IPAddress = r.RemoteAddr
+	}
+	return IPAddress
 }
 
 func ContentTypeJSONMiddleware(next http.Handler) http.Handler {

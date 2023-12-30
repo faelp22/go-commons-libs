@@ -9,11 +9,7 @@ import (
 	"github.com/phuslu/log"
 )
 
-var (
-	VERSION    = "0.1.0-dev"
-	COMMIT     = "ABCDEFG-dev"
-	oldAppName string
-)
+var oldAppName string
 
 const (
 	DEVELOPER           = "developer"
@@ -95,8 +91,6 @@ func NewDefaultConf() *Config {
 	}
 
 	default_conf = &Config{
-		AppVersion:        VERSION,
-		AppCommitShortSha: COMMIT,
 		globalLog: &log.Logger{
 			Level:  log.InfoLevel,
 			Caller: 1,
