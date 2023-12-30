@@ -1,26 +1,38 @@
 package httpserver
 
 import (
-	"log"
+	"encoding/json"
+	"fmt"
 	"net/http"
 	"os"
 	"time"
 
 	"github.com/faelp22/go-commons-libs/core/config"
 	"github.com/gorilla/mux"
+	"github.com/phuslu/log"
 	"github.com/rs/cors"
 )
 
 func New(r *mux.Router, conf *config.Config, opts *cors.Options) *http.Server {
+
+	if conf.HttpConfig.Logger == nil {
+		conf.HttpConfig.Logger = conf.GetGlobalLogger()
+	}
+
+	r.Use(LoggingMiddleware)
+
+	r.MethodNotAllowedHandler = defaultMethodNotAllowedHandler()
+	r.NotFoundHandler = defaultNotFoundHandler()
+
 	var handler http.Handler = r
 
 	if opts != nil {
 		handler = cors.New(*opts).Handler(r)
 	}
 
-	SRV_PORT := os.Getenv("SRV_PORT")
-	if SRV_PORT != "" {
-		conf.PORT = SRV_PORT
+	SRV_HTTP_PORT := os.Getenv("SRV_HTTP_PORT")
+	if SRV_HTTP_PORT != "" {
+		conf.PORT = SRV_HTTP_PORT
 	} else {
 		conf.PORT = "3000"
 	}
@@ -30,8 +42,96 @@ func New(r *mux.Router, conf *config.Config, opts *cors.Options) *http.Server {
 		WriteTimeout: 10 * time.Second, // Responde em 10 segundos
 		Addr:         ":" + conf.PORT,
 		Handler:      handler,
-		ErrorLog:     log.New(os.Stderr, "logger: ", log.Lshortfile),
+		// ErrorLog:     log.New(os.Stderr, "logger: ", log.Lshortfile),
+		ErrorLog: log.DefaultLogger.Std("", 0),
 	}
 
 	return srv
+}
+
+func LoggingMiddleware(next http.Handler) http.Handler {
+
+	conf := config.NewDefaultConf()
+
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+
+		start := time.Now()
+		srw := &statusResponseWriter{ResponseWriter: w}
+		next.ServeHTTP(srw, r)
+
+		conf.HttpConfig.Logger.Info().
+			Str("AppName", conf.AppName).
+			Str("AppVersion", conf.AppVersion).
+			Str("AppCommitShortSha", conf.AppCommitShortSha).
+			Str("HttpVersion", r.Proto).
+			Str("Method", r.Method).
+			Str("Host", r.Host).
+			Str("Path", r.URL.Path).
+			Str("Duration", fmt.Sprintf("%v", time.Since(start))).
+			Str("StatusCode", fmt.Sprintf("%v", srw.status)).
+			// Str("RawQuery", r.URL.RawQuery).
+			Msg(http.StatusText(srw.status))
+
+	})
+}
+
+func ContentTypeJSONMiddleware(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json; charset=utf-8")
+		next.ServeHTTP(w, r)
+	})
+}
+
+type statusResponseWriter struct {
+	http.ResponseWriter
+	status int
+}
+
+func (srw *statusResponseWriter) WriteHeader(status int) {
+	srw.status = status
+	srw.ResponseWriter.WriteHeader(status)
+}
+
+type HttpMsg struct {
+	Msg  string `json:"msg"`
+	Code int    `json:"code"`
+}
+
+func (m *HttpMsg) toBytes() []byte {
+	data, err := json.Marshal(m)
+
+	if err != nil {
+		log.Error().Str("FuntionName", "toBytes").Msg(err.Error())
+	}
+
+	return data
+}
+
+func (m *HttpMsg) Write(w http.ResponseWriter) {
+	w.WriteHeader(m.Code)
+	w.Write(m.toBytes())
+}
+
+var ErroHttpMsgPageNotFound HttpMsg = HttpMsg{
+	Msg:  "Erro Page Not Found",
+	Code: http.StatusNotFound,
+}
+
+var ErroHttpMsgMethodNotAllowed HttpMsg = HttpMsg{
+	Msg:  "Erro Method Not Allowed",
+	Code: http.StatusMethodNotAllowed,
+}
+
+func defaultMethodNotAllowedHandler() http.Handler {
+	return LoggingMiddleware(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json; charset=utf-8")
+		ErroHttpMsgMethodNotAllowed.Write(w)
+	}))
+}
+
+func defaultNotFoundHandler() http.Handler {
+	return LoggingMiddleware(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json; charset=utf-8")
+		ErroHttpMsgPageNotFound.Write(w)
+	}))
 }

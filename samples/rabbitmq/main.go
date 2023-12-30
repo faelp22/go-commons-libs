@@ -3,13 +3,12 @@ package main
 import (
 	"context"
 	"encoding/json"
-	"log"
-	"os"
 	"time"
 
 	"github.com/faelp22/go-commons-libs/core/config"
 	"github.com/faelp22/go-commons-libs/pkg/adapter/rabbitmq"
 	"github.com/google/uuid"
+	"github.com/phuslu/log"
 	amqp "github.com/rabbitmq/amqp091-go"
 )
 
@@ -40,8 +39,9 @@ var filas []rabbitmq.Queue = []rabbitmq.Queue{
 func main() {
 
 	conf := &config.Config{
-		Mode:      config.DEVELOPER,
-		RMQConfig: &config.RMQConfig{},
+		AppMode:         config.DEVELOPER,
+		AppTargetDeploy: config.TARGET_DEPLOY_LOCAL,
+		RMQConfig:       &config.RMQConfig{},
 	}
 
 	rbmq_conn := rabbitmq.New(conf)
@@ -49,7 +49,7 @@ func main() {
 
 	done := make(chan bool)
 	go task_service.Run()
-	log.Printf("Worker Running [Mode: %s], [Version: %s], [Commit: %s]", conf.Mode, VERSION, COMMIT)
+	log.Info().Str("Mode", conf.AppMode).Str("Version", conf.AppVersion).Str("Commit", conf.AppCommitShortSha).Msg("Worker Running")
 	<-done
 }
 
@@ -67,19 +67,17 @@ func newTaskService(rbmq rabbitmq.RabbitInterface, conf *config.Config) *task_se
 
 func (ts *task_service) consumerCallback(msg *amqp.Delivery) {
 
-	log.Println("New MSG received")
-
-	log.Println(string(msg.Body))
+	log.Debug().Str("msgBody", string(msg.Body)).Msg("New MSG received")
 
 	if err := msg.Ack(false); err != nil {
-		log.Println("Erro to ACK MSG Status")
+		log.Error().Str("FunctionName", "consumerCallback").Msg("Erro to ACK MSG Status")
 	} else {
-		log.Println("MSG Status update success")
+		log.Debug().Msg("MSG Status update success")
 	}
 }
 
 func (ts *task_service) anotherProccess() {
-	log.Println("Produzindo dados")
+	log.Debug().Msg("Produzindo dados")
 
 	msg_status := &MessageResponseStatus{
 		Id:     uuid.New().String(),
@@ -88,8 +86,7 @@ func (ts *task_service) anotherProccess() {
 
 	data, err := json.Marshal(msg_status)
 	if err != nil {
-		log.Println("Failed to parse MessageResponseStatus to JSON")
-		log.Println(err)
+		log.Error().Str("ERRO_TEST_RMQ", "Failed to parse MessageResponseStatus to JSON").Msg(err.Error())
 	}
 
 	msg := &rabbitmq.Message{
@@ -103,29 +100,24 @@ func (ts *task_service) anotherProccess() {
 
 	err = ts.rbmq.Producer(context.Background(), pc, msg)
 	if err != nil {
-		log.Println("Failed to Producer a MSG")
-		log.Println(err)
-		log.Println(string(msg.Data))
+		log.Error().Str("ERRO_TEST_RMQ", "Failed to Producer a MSG").Str("data", string(msg.Data)).Msg(err.Error())
 	}
 }
 
 func (ts *task_service) Run() {
 	conn, err := ts.rbmq.Connect()
 	if err != nil {
-		log.Println("Erro to connect in rabbitmq")
-		log.Println(err)
-		os.Exit(1)
+		log.Fatal().Str("ERRO_TEST_RMQ", "Erro to connect in rabbitmq").Msg(err.Error())
 	}
 
 	// -----------------------------------------------------
 
 	errs := conn.CompleteQueueDeclare(filas)
 	if len(errs) >= 1 {
-		log.Println("Erro to run CompleteQueueDeclare in main")
-		for err := range errs {
-			log.Println(err)
+		for _, err := range errs {
+			log.Error().Msg(err.Error())
 		}
-		os.Exit(1)
+		log.Fatal().Msg("Erro to run CompleteQueueDeclare in main")
 	}
 
 	// -----------------------------------------------------
@@ -138,10 +130,10 @@ func (ts *task_service) Run() {
 
 	for {
 		if ts.rbmq.GetConnectStatus() {
-			log.Println("Iniciando novo processo interno")
+			log.Debug().Msg("Iniciando novo processo interno")
 			ts.anotherProccess()
 		} else {
-			log.Println("Parado sem fazer processos internos")
+			log.Debug().Msg("Parado sem fazer processos internos")
 		}
 		time.Sleep(3 * time.Second)
 	}
