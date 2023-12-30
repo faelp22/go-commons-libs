@@ -28,12 +28,7 @@ var dbpool = &dabase_pool{}
 
 func New(conf *config.Config) *dabase_pool {
 
-	SRV_DB_DRIVE := os.Getenv("SRV_DB_DRIVE")
-	if SRV_DB_DRIVE != "" {
-		conf.DB_DRIVE = SRV_DB_DRIVE
-	} else {
-		conf.DB_DRIVE = "postgres"
-	}
+	conf.DB_DRIVE = "postgres"
 
 	SRV_DB_HOST := os.Getenv("SRV_DB_HOST")
 	if SRV_DB_HOST != "" {
@@ -45,7 +40,7 @@ func New(conf *config.Config) *dabase_pool {
 	SRV_DB_PORT := os.Getenv("SRV_DB_PORT")
 	if SRV_DB_PORT != "" {
 		conf.DB_PORT = SRV_DB_PORT
-	} else {
+	} else if conf.DB_PORT == "" {
 		conf.DB_PORT = "5432"
 	}
 
@@ -72,43 +67,70 @@ func New(conf *config.Config) *dabase_pool {
 
 	SRV_DB_CONNECT_TIMEOUT := os.Getenv("SRV_DB_CONNECT_TIMEOUT")
 	if SRV_DB_CONNECT_TIMEOUT != "" {
+
 		var err error
 		conf.DB_CONNECT_TIMEOUT, err = strconv.Atoi(SRV_DB_CONNECT_TIMEOUT)
 		if err != nil {
-			log.Error().Str("DB_CONNECT_TIMEOUT", "Invalid value").Str("SetDefaultValue", "10s").Msg(err.Error())
+			log.Error().Str("SRV_DB_CONNECT_TIMEOUT", "Invalid value").Str("SetDefaultValue", "10s").Msg(err.Error())
 			conf.DB_CONNECT_TIMEOUT = 10 // 10s
 		}
-	} else {
+
+	} else if conf.DB_CONNECT_TIMEOUT == 0 {
 		conf.DB_CONNECT_TIMEOUT = 10 // 10s
 	}
 
 	SRV_DB_SET_MAX_OPEN_CONNS := os.Getenv("SRV_DB_SET_MAX_OPEN_CONNS")
 	if SRV_DB_SET_MAX_OPEN_CONNS != "" {
-		conf.DB_SET_MAX_OPEN_CONNS, _ = strconv.Atoi(SRV_DB_SET_MAX_OPEN_CONNS)
-	} else {
+
+		var err error
+		conf.DB_SET_MAX_OPEN_CONNS, err = strconv.Atoi(SRV_DB_SET_MAX_OPEN_CONNS)
+		if err != nil {
+			log.Error().Str("SRV_DB_SET_MAX_OPEN_CONNS", "Invalid value").Str("SetDefaultValue", "Max 10 Open Conns").Msg(err.Error())
+			conf.DB_SET_MAX_OPEN_CONNS = 10 // Max 10 Open Conns
+		}
+
+	} else if conf.DB_SET_MAX_OPEN_CONNS == 0 {
 		conf.DB_SET_MAX_OPEN_CONNS = 10 // Max 10 Open Conns
 	}
 
 	SRV_DB_SET_MAX_IDLE_CONNS := os.Getenv("SRV_DB_SET_MAX_IDLE_CONNS")
 	if SRV_DB_SET_MAX_IDLE_CONNS != "" {
-		conf.DB_SET_MAX_IDLE_CONNS, _ = strconv.Atoi(SRV_DB_SET_MAX_IDLE_CONNS)
-	} else {
+
+		var err error
+		conf.DB_SET_MAX_IDLE_CONNS, err = strconv.Atoi(SRV_DB_SET_MAX_IDLE_CONNS)
+		if err != nil {
+			log.Error().Str("SRV_DB_SET_MAX_IDLE_CONNS", "Invalid value").Str("SetDefaultValue", "Max 10 Idle Conns").Msg(err.Error())
+			conf.DB_SET_MAX_IDLE_CONNS = 10 // Max 10 Idle Conns
+		}
+
+	} else if conf.DB_SET_MAX_IDLE_CONNS == 0 {
 		conf.DB_SET_MAX_IDLE_CONNS = 10 // Max 10 Idle Conns
 	}
 
 	SRV_DB_SET_CONN_MAX_LIFE_TIME := os.Getenv("SRV_DB_SET_CONN_MAX_LIFE_TIME")
 	if SRV_DB_SET_CONN_MAX_LIFE_TIME != "" {
-		conf.DB_SET_CONN_MAX_LIFE_TIME, _ = strconv.Atoi(SRV_DB_SET_CONN_MAX_LIFE_TIME)
-	} else {
+
+		var err error
+		conf.DB_SET_CONN_MAX_LIFE_TIME, err = strconv.Atoi(SRV_DB_SET_CONN_MAX_LIFE_TIME)
+		if err != nil {
+			log.Error().Str("SRV_DB_SET_CONN_MAX_LIFE_TIME", "Invalid value").Str("SetDefaultValue", "5 minutes").Msg(err.Error())
+			conf.DB_SET_CONN_MAX_LIFE_TIME = 5 // Max Open Conn Interval is 5 minutes
+		}
+
+	} else if conf.DB_SET_CONN_MAX_LIFE_TIME == 0 {
 		conf.DB_SET_CONN_MAX_LIFE_TIME = 5 // Max Open Conn Interval is 5 minutes
 	}
 
 	SRV_DB_SSL_MODE := os.Getenv("SRV_DB_SSL_MODE")
 	if SRV_DB_SSL_MODE != "" {
-		conf.DB_SSL_MODE, _ = strconv.ParseBool(SRV_DB_SSL_MODE)
-	} else {
-		log.Trace().Str("DB_SSL_MODE", "false").Msg("hi, Info phuslog")
-		conf.DB_SSL_MODE = false // SSL Mode false by default
+
+		var err error
+		conf.DB_SSL_MODE, err = strconv.ParseBool(SRV_DB_SSL_MODE)
+		if err != nil {
+			log.Error().Str("SRV_DB_SSL_MODE", "Invalid value").Str("SetDefaultValue", "false").Msg(err.Error())
+			conf.DB_SSL_MODE = false
+		}
+
 	}
 
 	sslMode := "disable"

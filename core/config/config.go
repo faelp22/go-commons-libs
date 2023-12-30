@@ -146,6 +146,13 @@ func (c *Config) GetGlobalLogger() *log.Logger {
 	return c.globalLog
 }
 
+func (c *Config) Reload() {
+	c.setAppLogLevel(c.AppLogLevel)
+	c.setAppMode(c.AppMode)
+	c.setAppName(c.AppName)
+	c.setAppTargetDeploy(c.AppTargetDeploy)
+}
+
 func (c *Config) setAppLogLevel(level string) {
 	switch strings.ToUpper(level) {
 	case "TRACE":

@@ -3,20 +3,23 @@ package main
 import (
 	"context"
 
-	"github.com/phuslu/log"
-
 	"github.com/faelp22/go-commons-libs/core/config"
 	"github.com/faelp22/go-commons-libs/pkg/adapter/pgsql"
+	"github.com/phuslu/log"
 )
 
 func main() {
 
 	conf := config.NewDefaultConf()
+	conf.AppLogLevel = log.DebugLevel.String()
 	conf.AppTargetDeploy = config.TARGET_DEPLOY_LOCAL
+	conf.Reload()
+
 	conf.PGSQLConfig = &config.PGSQLConfig{
 		DB_HOST: "localhost",
 		DB_USER: "postgres",
-		DB_PASS: "123456",
+		DB_PASS: "supersenha",
+		// DB_PORT: "5433",
 		DB_NAME: "postgres",
 	}
 

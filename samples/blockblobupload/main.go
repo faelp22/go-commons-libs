@@ -81,8 +81,8 @@ func main() {
 
 	fileInfo, _ := file.Stat()
 
-	log.Debug().Str("FILE_SIZE", unitConverter(int(fileInfo.Size())))
-	log.Debug().Str("FILE_NAME", fileInfo.Name())
+	log.Debug().Str("FILE_SIZE", unitConverter(int(fileInfo.Size()))).Msg("Tamanho do arquivo")
+	log.Debug().Str("FILE_NAME", fileInfo.Name()).Msg("Nome do arquivo")
 
 	fileSize := fileInfo.Size()
 
@@ -109,12 +109,16 @@ func main() {
 		}
 
 		chunkData = chunkData[:n]
-		fmt.Printf("upload chunk %d of %d, size %s\r", i, totalNumberOfChunks, unitConverter(len(chunkData)))
+
+		log.Debug().Msg(fmt.Sprintf("upload chunk %d of %d, size %s\r", i, totalNumberOfChunks, unitConverter(len(chunkData))))
+
 		blockID, err := blobStorageService.PutBlock(ctx, blockBlobClient, i, &chunkData)
 		if err != nil {
 			log.Fatal().Msg(err.Error())
 		}
-		fmt.Println("success to upload chunk, store block ID: ", blockID)
+
+		log.Debug().Str("BlockID", blockID).Msg("success to upload chunk, store block")
+
 		blockIDs = append(blockIDs, blockID)
 	}
 

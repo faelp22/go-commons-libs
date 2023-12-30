@@ -1,8 +1,7 @@
 package rabbitmq
 
 import (
-	"log"
-
+	"github.com/phuslu/log"
 	amqp "github.com/rabbitmq/amqp091-go"
 )
 
@@ -42,7 +41,7 @@ func (rbm *Rbm_pool) SimpleQueueDeclare(sq Queue) (queue amqp.Queue, err error) 
 	)
 
 	if err != nil {
-		log.Println("Erro to QueueDeclare Queue in RabbitMQ")
+		log.Error().Str("FunctionName", "SimpleQueueDeclare").Str("Erro", err.Error()).Msg("Erro to QueueDeclare Queue in RabbitMQ")
 		return queue, err
 	}
 
@@ -60,7 +59,7 @@ func (rbm *Rbm_pool) CompleteQueueDeclare(cq []Queue) []error {
 			queue.NoWait,     // no-wait
 			queue.Arguments,  // arguments
 		); err != nil {
-			log.Println("Erro to QueueDeclare Queue in RabbitMQ")
+			log.Error().Str("FunctionName", "CompleteQueueDeclare").Str("Erro", err.Error()).Msg("Erro to QueueDeclare Queue in RabbitMQ")
 			listErrors = append(listErrors, err)
 		}
 
@@ -73,7 +72,7 @@ func (rbm *Rbm_pool) CompleteQueueDeclare(cq []Queue) []error {
 					queue.NoWait,
 					queue.Arguments,
 				); err != nil {
-					log.Println("Erro to QueueBind in RabbitMQ")
+					log.Error().Str("FunctionName", "CompleteQueueDeclare>QueueBind").Str("Erro", err.Error()).Msg("Erro to QueueBind in RabbitMQ")
 					listErrors = append(listErrors, err)
 				}
 			}
@@ -93,7 +92,7 @@ func (rbm *Rbm_pool) SimpleExchangeDeclare(se Exchange) error {
 		se.NoWait,     // no-wait
 		se.Arguments,  // arguments
 	); err != nil {
-		log.Println("Erro to ExchangeDeclare in RabbitMQ")
+		log.Error().Str("FunctionName", "SimpleExchangeDeclare").Str("Erro", err.Error()).Msg("Erro to ExchangeDeclare in RabbitMQ")
 		return err
 	}
 
@@ -112,7 +111,9 @@ func (rbm *Rbm_pool) CompleteExchangeDeclare(ce []Exchange) []error {
 			exchange.NoWait,     // no-wait
 			exchange.Arguments,  // arguments
 		); err != nil {
-			log.Println("Erro to ExchangeDeclare in RabbitMQ")
+
+			log.Error().Str("FunctionName", "CompleteExchangeDeclare").Str("Erro", err.Error()).Msg("Erro to ExchangeDeclare in RabbitMQ")
+
 			listErrors = append(listErrors, err)
 		}
 	}
