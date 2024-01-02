@@ -211,6 +211,6 @@ func (c *Config) setAppTargetDeploy(target string) {
 		c.AppTargetDeploy = TARGET_DEPLOY_NUVEM
 	default:
 		c.AppMode = TARGET_DEPLOY_NUVEM
-		log.Info().Msg(fmt.Sprintf("Attention, The value [%s] is not valid, see the available options: (Local or Nuvem). Setting the default app mode to [production].", target))
+		log.Info().Msg(fmt.Sprintf("Attention, The value [%s] is not valid, see the available options: (Local or Nuvem). Setting the default app mode to [Nuvem].", target))
 	}
 }
