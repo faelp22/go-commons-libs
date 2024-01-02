@@ -9,6 +9,7 @@ require (
 	github.com/google/uuid v1.3.0
 	github.com/gorilla/mux v1.8.0
 	github.com/lib/pq v1.10.9
+	github.com/phuslu/log v1.0.88
 	github.com/rabbitmq/amqp091-go v1.8.1
 	github.com/rs/cors v1.10.0
 	go.mongodb.org/mongo-driver v1.12.0

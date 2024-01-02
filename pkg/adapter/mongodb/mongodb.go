@@ -3,10 +3,10 @@ package mongodb
 import (
 	"context"
 	"errors"
-	"log"
 	"os"
 
 	"github.com/faelp22/go-commons-libs/core/config"
+	"github.com/phuslu/log"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
@@ -31,17 +31,15 @@ func New(conf *config.Config) MongoDBInterface {
 	SRV_MDB_URI := os.Getenv("SRV_MDB_URI")
 	if SRV_MDB_URI != "" {
 		conf.MDB_URI = SRV_MDB_URI
-	} else {
-		log.Println("A variável SRV_MDB_URI é obrigatória!")
-		os.Exit(1)
+	} else if conf.AppMode == config.PRODUCTION && conf.AppTargetDeploy == config.TARGET_DEPLOY_NUVEM {
+		log.Fatal().Msg("A variável SRV_MDB_URI é obrigatória!")
 	}
 
 	SRV_MDB_NAME := os.Getenv("SRV_MDB_NAME")
 	if SRV_MDB_NAME != "" {
 		conf.MDB_NAME = SRV_MDB_NAME
-	} else {
-		log.Println("A variável SRV_MDB_NAME é obrigatória!")
-		os.Exit(1)
+	} else if conf.AppMode == config.PRODUCTION && conf.AppTargetDeploy == config.TARGET_DEPLOY_NUVEM {
+		log.Fatal().Msg("A variável SRV_MDB_NAME é obrigatória!")
 	}
 
 	SRV_MDB_DEFAULT_COLLECTION := os.Getenv("SRV_MDB_DEFAULT_COLLECTION")
@@ -57,12 +55,12 @@ func New(conf *config.Config) MongoDBInterface {
 
 		client, err := mongo.Connect(ctx, options.Client().ApplyURI(conf.MDB_URI))
 		if err != nil {
-			log.Fatal("Erro to make Connect DB:", err.Error())
+			log.Fatal().Str("ERRO_CONECTION", "Erro to make Connect DB").Msg(err.Error())
 		}
 
 		err = client.Ping(ctx, nil)
 		if err != nil {
-			log.Fatal("Erro to contact DB:", err.Error())
+			log.Fatal().Str("ERRO_CONECTION_PING", "Erro to Ping Connect DB").Msg(err.Error())
 		}
 
 		mdbpool = &mongodb_pool{
@@ -91,7 +89,7 @@ func (mdbp *mongodb_pool) GetCollectionByName(name string) *mongo.Collection {
 func ObjectIDFromHex(hex string) (objectID primitive.ObjectID, err error) {
 	objectID, err = primitive.ObjectIDFromHex(hex)
 	if err != nil {
-		log.Println(err.Error())
+		log.Error().Str("FunctionName", "ObjectIDFromHex").Msg(err.Error())
 		return objectID, err
 	}
 	return objectID, nil

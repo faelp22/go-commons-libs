@@ -4,11 +4,12 @@ import (
 	"context"
 	"flag"
 	"fmt"
-	"github.com/faelp22/go-commons-libs/core/config"
-	"github.com/faelp22/go-commons-libs/pkg/adapter/azure/blobstorage"
-	"log"
 	"os"
 	"path/filepath"
+
+	"github.com/faelp22/go-commons-libs/core/config"
+	"github.com/faelp22/go-commons-libs/pkg/adapter/azure/blobstorage"
+	"github.com/phuslu/log"
 )
 
 const (
@@ -59,36 +60,35 @@ func main() {
 	flag.Parse()
 
 	if *flagFilePath == "" {
-		log.Println("filepath is required")
-		os.Exit(1)
+		log.Fatal().Msg("filepath is required")
 	}
 
 	absFilePath, err := filepath.Abs(*flagFilePath)
 	if err != nil {
-		panic(err)
+		log.Fatal().Msg(err.Error())
 	}
 
 	file, err := os.Open(absFilePath)
 	if err != nil {
-		panic(err)
+		log.Fatal().Msg(err.Error())
 	}
 	defer func(file *os.File) {
 		err := file.Close()
 		if err != nil {
-			log.Println("error closing file: ", err.Error())
+			log.Error().Str("ERRO_BLOB", "error closing file").Msg(err.Error())
 		}
 	}(file)
 
 	fileInfo, _ := file.Stat()
 
-	log.Println("file size: ", unitConverter(int(fileInfo.Size())))
-	log.Println("file name: ", fileInfo.Name())
+	log.Debug().Str("FILE_SIZE", unitConverter(int(fileInfo.Size()))).Msg("Tamanho do arquivo")
+	log.Debug().Str("FILE_NAME", fileInfo.Name()).Msg("Nome do arquivo")
 
 	fileSize := fileInfo.Size()
 
 	blockBlobClient, err := blobStorageService.CreateBlockBlobClient(fileInfo.Name(), "test")
 	if err != nil {
-		panic(err)
+		log.Fatal().Msg(err.Error())
 	}
 
 	chunkSize := 4 << 20                                                                // 4MB
@@ -105,23 +105,27 @@ func main() {
 		chunkData := make([]byte, chunkSize)
 		n, err := file.Read(chunkData)
 		if err != nil {
-			panic(err)
+			log.Fatal().Msg(err.Error())
 		}
 
 		chunkData = chunkData[:n]
-		fmt.Printf("upload chunk %d of %d, size %s\r", i, totalNumberOfChunks, unitConverter(len(chunkData)))
+
+		log.Debug().Msg(fmt.Sprintf("upload chunk %d of %d, size %s\r", i, totalNumberOfChunks, unitConverter(len(chunkData))))
+
 		blockID, err := blobStorageService.PutBlock(ctx, blockBlobClient, i, &chunkData)
 		if err != nil {
-			panic(err)
+			log.Fatal().Msg(err.Error())
 		}
-		fmt.Println("success to upload chunk, store block ID: ", blockID)
+
+		log.Debug().Str("BlockID", blockID).Msg("success to upload chunk, store block")
+
 		blockIDs = append(blockIDs, blockID)
 	}
 
 	err = blobStorageService.MountFile(ctx, blockBlobClient, &blockIDs)
 	if err != nil {
-		panic(err)
+		log.Fatal().Msg(err.Error())
 	}
 
-	log.Println("Success to upload file")
+	log.Info().Msg("Success to upload file")
 }

@@ -1,0 +1,31 @@
+version: '3.9'
+
+services:
+
+  dbpostgre:
+    image: postgres:15.4-alpine3.18
+    # restart: always
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: supersenha
+    volumes:
+      - ./tmp_data/postgres_data:/var/lib/postgresql/data
+    ports:
+      - 5432:5432
+
+  pgadmin4:
+    image: dpage/pgadmin4:7.4
+    # restart: always
+    environment:
+      PGADMIN_DEFAULT_EMAIL: admin@email.com
+      PGADMIN_DEFAULT_PASSWORD: supersenha
+      PGADMIN_CONFIG_UPGRADE_CHECK_ENABLED: 0
+    ports:
+      - 8050:80
+      # - 8443:443
+    volumes:
+      - ./tmp_data/pgadm4_data:/var/lib/pgadmin
+    depends_on:
+      - dbpostgre
+    links:
+      - dbpostgre

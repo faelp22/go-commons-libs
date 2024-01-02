@@ -2,12 +2,14 @@ package blobstorage
 
 import (
 	"context"
-	"github.com/Azure/azure-sdk-for-go/sdk/storage/azblob/blockblob"
 	"io"
-	"log"
 	"os"
 	"strconv"
 	"time"
+
+	"github.com/phuslu/log"
+
+	"github.com/Azure/azure-sdk-for-go/sdk/storage/azblob/blockblob"
 
 	"github.com/Azure/azure-sdk-for-go/sdk/storage/azblob"
 	"github.com/faelp22/go-commons-libs/core/config"
@@ -51,25 +53,22 @@ func New(conf *config.Config) BlobInterface {
 	BLOB_STORAGE_ACCOUNT_NAME := os.Getenv("BLOB_STORAGE_ACCOUNT_NAME")
 	if BLOB_STORAGE_ACCOUNT_NAME != "" {
 		conf.BS_ACCOUNT_NAME = BLOB_STORAGE_ACCOUNT_NAME
-	} else {
-		log.Println("A variável BLOB_STORAGE_ACCOUNT_NAME é obrigatória!")
-		os.Exit(1)
+	} else if conf.AppMode == config.PRODUCTION && conf.AppTargetDeploy == config.TARGET_DEPLOY_NUVEM {
+		log.Fatal().Msg("A variável BLOB_STORAGE_ACCOUNT_NAME é obrigatória!")
 	}
 
 	BLOB_STORAGE_ACCOUNT_KEY := os.Getenv("BLOB_STORAGE_ACCOUNT_KEY")
 	if BLOB_STORAGE_ACCOUNT_KEY != "" {
 		conf.BS_ACCOUNT_KEY = BLOB_STORAGE_ACCOUNT_KEY
-	} else {
-		log.Println("A variável BLOB_STORAGE_ACCOUNT_KEY é obrigatória!")
-		os.Exit(1)
+	} else if conf.AppMode == config.PRODUCTION && conf.AppTargetDeploy == config.TARGET_DEPLOY_NUVEM {
+		log.Fatal().Msg("A variável BLOB_STORAGE_ACCOUNT_KEY é obrigatória!")
 	}
 
 	BLOB_STORAGE_SERVICE_URL := os.Getenv("BLOB_STORAGE_ACCOUNT_URL")
 	if BLOB_STORAGE_SERVICE_URL != "" {
 		conf.BS_SERVICE_URL = BLOB_STORAGE_SERVICE_URL
-	} else {
-		log.Println("A variável BLOB_STORAGE_ACCOUNT_URL é obrigatória!")
-		os.Exit(1)
+	} else if conf.AppMode == config.PRODUCTION && conf.AppTargetDeploy == config.TARGET_DEPLOY_NUVEM {
+		log.Fatal().Msg("A variável BLOB_STORAGE_ACCOUNT_URL é obrigatória!")
 	}
 
 	BLOB_STORAGE_EXPIRY_TIME_URL := os.Getenv("BLOB_STORAGE_EXPIRY_TIME_URL")
@@ -86,14 +85,12 @@ func New(conf *config.Config) BlobInterface {
 	if blobstorage == nil || blobstorage.Client == nil {
 		cred, err := azblob.NewSharedKeyCredential(conf.BS_ACCOUNT_NAME, conf.BS_ACCOUNT_KEY)
 		if err != nil {
-			log.Println("Erro criando credencial sharedkey")
-			os.Exit(1)
+			log.Fatal().Msg("Erro criando credencial sharedkey!")
 		}
 
 		client, err := azblob.NewClientWithSharedKeyCredential(conf.BS_SERVICE_URL, cred, nil)
 		if err != nil {
-			log.Println("Erro criando cliente Blob Storage com sharedkey")
-			os.Exit(1)
+			log.Fatal().Msg("Erro criando cliente Blob Storage com sharedkey!")
 		}
 
 		blobstorage = &blobStorage{

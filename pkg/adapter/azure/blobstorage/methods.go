@@ -5,9 +5,7 @@ import (
 	"context"
 	"encoding/base64"
 	"fmt"
-	"github.com/Azure/azure-sdk-for-go/sdk/storage/azblob/blockblob"
 	"io"
-	"log"
 	"os"
 	"time"
 
@@ -16,7 +14,9 @@ import (
 	"github.com/Azure/azure-sdk-for-go/sdk/azcore/to"
 	"github.com/Azure/azure-sdk-for-go/sdk/storage/azblob"
 	"github.com/Azure/azure-sdk-for-go/sdk/storage/azblob/blob"
+	"github.com/Azure/azure-sdk-for-go/sdk/storage/azblob/blockblob"
 	"github.com/Azure/azure-sdk-for-go/sdk/storage/azblob/sas"
+	"github.com/phuslu/log"
 )
 
 // GetBlobClient returns the blob storage client
@@ -93,13 +93,13 @@ func (bs *blobStorage) UploadFile(ctx context.Context, blobName, containerName s
 
 	defer func(file *os.File) {
 		if err = file.Close(); err != nil {
-			log.Fatalf("error closing the blob file: %s", err.Error())
+			log.Error().Str("FuntionName", "WriteToFile").Str("fileName", file.Name()).Msg(fmt.Sprintf("error closing the blob file: %s", err.Error()))
 		}
 	}(fileHandler)
 
 	defer func(name string) {
 		if err = os.Remove(name); err != nil {
-			log.Fatalf("unnexpected error: %s", err.Error())
+			log.Error().Str("FuntionName", "WriteToFile").Msg(fmt.Sprintf("unnexpected error: %s", err.Error()))
 		}
 	}(blobName)
 
@@ -133,7 +133,7 @@ func (bs *blobStorage) DownloadFile(ctx context.Context, blobInfo BlobInfo, cont
 
 	defer func(destFile *os.File) {
 		if err = destFile.Close(); err != nil {
-			log.Fatalf("error closing the blob file: %s", err.Error())
+			log.Error().Str("FuntionName", "WriteToFile").Str("fileName", destFile.Name()).Msg(fmt.Sprintf("error closing the blob file: %s", err.Error()))
 		}
 	}(destFile)
 
@@ -148,13 +148,13 @@ func (bs *blobStorage) WriteToFile(blobName string, response azblob.DownloadStre
 	stream := streaming.NewResponseProgress(
 		response.Body,
 		func(bytesTransferred int64) {
-			fmt.Printf("Downloaded %d bytes.\n", bytesTransferred)
+			log.Info().Str("FuntionName", "WriteToFile").Msg(fmt.Sprintf("Downloaded %d bytes.\n", bytesTransferred))
 		},
 	)
 
 	defer func(stream io.ReadCloser) {
 		if err := stream.Close(); err != nil {
-			log.Fatalf("error closing the blob file: %s", err.Error())
+			log.Error().Str("FuntionName", "WriteToFile").Msg(fmt.Sprintf("error closing the blob file: %s", err.Error()))
 		}
 	}(stream)
 
@@ -165,7 +165,7 @@ func (bs *blobStorage) WriteToFile(blobName string, response azblob.DownloadStre
 
 	defer func(file *os.File) {
 		if err = file.Close(); err != nil {
-			log.Fatalf("error closing the blob file: %s", err.Error())
+			log.Error().Str("FuntionName", "WriteToFile").Str("fileName", file.Name()).Msg(fmt.Sprintf("error closing the blob file: %s", err.Error()))
 		}
 	}(file)
 

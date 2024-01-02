@@ -3,11 +3,11 @@ package rabbitmq
 import (
 	"context"
 	"errors"
-	"log"
 	"os"
 	"strconv"
 
 	"github.com/faelp22/go-commons-libs/core/config"
+	"github.com/phuslu/log"
 	amqp "github.com/rabbitmq/amqp091-go"
 )
 
@@ -69,9 +69,8 @@ func New(conf *config.Config) RabbitInterface {
 	SRV_RMQ_URI := os.Getenv("SRV_RMQ_URI")
 	if SRV_RMQ_URI != "" {
 		conf.RMQ_URI = SRV_RMQ_URI
-	} else {
-		log.Println("A variável SRV_RMQ_URI é obrigatória!")
-		os.Exit(1)
+	} else if conf.AppMode == config.PRODUCTION && conf.AppTargetDeploy == config.TARGET_DEPLOY_NUVEM {
+		log.Fatal().Msg("A variável SRV_RMQ_URI é obrigatória!")
 	}
 
 	SRV_RMQ_MAXX_RECONNECT_TIMES := os.Getenv("SRV_RMQ_MAXX_RECONNECT_TIMES")
@@ -93,13 +92,13 @@ func (rbm *Rbm_pool) Connect() (RabbitInterface, error) {
 	var err error
 
 	if rbm.connStatus {
-		log.Println("There is already a connection, returning Conn")
+		log.Warn().Str("FunctionName", "Connect>rbm.connStatus").Msg("There is already a connection, returning Conn")
 		return rbm, nil
 	}
 
 	rbm.conn, err = amqp.Dial(rbm.conf.RMQ_URI)
 	if err != nil {
-		log.Println("Erro to Connect in RabbitMQ")
+		log.Warn().Str("FunctionName", "Connect>amqp.Dial").Msg("Erro to Connect in RabbitMQ")
 		return rbm, err
 	}
 
@@ -108,7 +107,7 @@ func (rbm *Rbm_pool) Connect() (RabbitInterface, error) {
 
 	rbm.channel, err = rbm.conn.Channel()
 	if err != nil {
-		log.Println("Erro to Connect in RabbitMQ Channel")
+		log.Warn().Str("FunctionName", "Connect>rbm.conn.Channel()").Msg("Erro to Connect in RabbitMQ Channel")
 		return rbm, err
 	}
 
@@ -118,7 +117,7 @@ func (rbm *Rbm_pool) Connect() (RabbitInterface, error) {
 	go func() {
 		select {
 		case <-notifyConnClose:
-			log.Println("connection closed")
+			log.Warn().Str("FunctionName", "Connect><-notifyConnClose").Msg("connection closed")
 			rbm.err <- errors.New("connection closed")
 			rbm.connStatus = false
 		case <-notifyChanClose:
@@ -128,7 +127,7 @@ func (rbm *Rbm_pool) Connect() (RabbitInterface, error) {
 	}()
 
 	rbm.connStatus = true
-	log.Println("New RabbitMQ Connect Success")
+	log.Info().Str("FunctionName", "Connect").Msg("New RabbitMQ Connect Success")
 
 	return rbm, nil
 }
@@ -143,10 +142,10 @@ func (rbm *Rbm_pool) GetConnectStatus() bool {
 
 func (rbm *Rbm_pool) CloseConnection() error {
 	if err := rbm.conn.Close(); err != nil {
-		log.Println("error closing rabbit connection", err)
+		log.Error().Str("FunctionName", "CloseConnection").Str("ERRO_RMQ", "error closing rabbit connection").Msg(err.Error())
 		return err
 	}
 
-	log.Println("RabbitMQ connection closed successfully")
+	log.Info().Str("FunctionName", "CloseConnection").Msg("RabbitMQ connection closed successfully")
 	return nil
 }

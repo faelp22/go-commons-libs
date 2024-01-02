@@ -3,7 +3,6 @@ package redisdb
 import (
 	"context"
 	"fmt"
-	"log"
 	"os"
 	"strconv"
 	"sync"
@@ -11,6 +10,7 @@ import (
 
 	"github.com/faelp22/go-commons-libs/core/config"
 	"github.com/go-redis/redis/v8"
+	"github.com/phuslu/log"
 )
 
 type RedisClientInterface interface {
@@ -32,9 +32,8 @@ func New(conf *config.Config) RedisClientInterface {
 	SRV_RDB_HOST := os.Getenv("SRV_RDB_HOST")
 	if SRV_RDB_HOST != "" {
 		conf.RDB_HOST = SRV_RDB_HOST
-	} else {
-		log.Println("A variável SRV_RDB_HOST é obrigatória!")
-		os.Exit(1)
+	} else if conf.AppMode == config.PRODUCTION && conf.AppTargetDeploy == config.TARGET_DEPLOY_NUVEM {
+		log.Fatal().Msg("A variável SRV_RDB_HOST é obrigatória!")
 	}
 
 	SRV_RDB_PORT := os.Getenv("SRV_RDB_PORT")
@@ -48,14 +47,14 @@ func New(conf *config.Config) RedisClientInterface {
 	if SRV_RDB_USER != "" {
 		conf.RDB_USER = SRV_RDB_USER
 	} else {
-		log.Println("Se o Redis precisa de [usuário] a variável SRV_RDB_USER é obrigatória!")
+		log.Info().Msg("Se o Redis precisa de [usuário] a variável SRV_RDB_USER é obrigatória!")
 	}
 
 	SRV_RDB_PASS := os.Getenv("SRV_RDB_PASS")
 	if SRV_RDB_PASS != "" {
 		conf.RDB_PASS = SRV_RDB_PASS
 	} else {
-		log.Println("Se o Redis precisa de [senha] a variável SRV_RDB_PASS é obrigatória!")
+		log.Info().Msg("Se o Redis precisa de [senha] a variável SRV_RDB_PASS é obrigatória!")
 	}
 
 	SRV_RDB_DB := os.Getenv("SRV_RDB_DB")
@@ -76,7 +75,7 @@ func New(conf *config.Config) RedisClientInterface {
 
 	opt, err := redis.ParseURL(conf.RDB_DSN)
 	if err != nil {
-		log.Fatal(err)
+		log.Fatal().Str("ERRO_REDIS_CON", "Erro ao tentar fazer o Parse da DSN").Msg(err.Error())
 	}
 
 	rc := &redis_client{
@@ -88,8 +87,7 @@ func New(conf *config.Config) RedisClientInterface {
 
 	status := rc.rdb.Ping(ctx)
 	if status.String() != "ping: PONG" {
-		log.Println("Erro ao conectar no Redis")
-		log.Fatal(status)
+		log.Fatal().Str("ERRO_REDIS_CON_PIN", "Erro ao conectar no Redis").Str("Status", status.String()).Msg(status.Err().Error())
 	}
 
 	return rc
@@ -106,7 +104,7 @@ func (rs *redis_client) ReadData(ctx context.Context, key string) (data []byte, 
 
 	data, err = rs.rdb.Get(ctx, key).Bytes()
 	if err != nil {
-		log.Println(err.Error())
+		log.Error().Str("FunctionName", "ReadData").Str("ERRO_REDIS", "Erro ao tentar ler uma informação").Msg(err.Error())
 		return
 	}
 
@@ -136,7 +134,7 @@ func (rs *redis_client) SaveHSetData(ctx context.Context, key, datakey string, v
 	defer rs.modifyLock.Unlock()
 	result := rs.rdb.HSet(ctx, key, datakey, value)
 	if result.Err() != nil {
-		log.Println(result.Err().Error())
+		log.Error().Str("FunctionName", "SaveHSetData").Str("ERRO_REDIS", "Erro ao tentar salvar uma informação").Msg(result.Err().Error())
 		return
 	}
 	return true
@@ -149,6 +147,7 @@ func (rs *redis_client) ReadHSetData(ctx context.Context, key string) (data map[
 
 	data, err = rs.rdb.HGetAll(ctx, key).Result()
 	if err != nil {
+		log.Error().Str("FunctionName", "ReadHSetData").Str("ERRO_REDIS", "Erro ao tentar Ler uma informação").Msg(err.Error())
 		return nil, err
 	}
 
@@ -162,7 +161,7 @@ func (rs *redis_client) DeleteAllHSetData(ctx context.Context, key string) (ok b
 
 	result := rs.rdb.Del(ctx, key)
 	if result.Err() != nil {
-		log.Println(result.Err().Error())
+		log.Error().Str("FunctionName", "DeleteAllHSetData").Str("ERRO_REDIS", "Erro ao tentar Deletar uma informação").Msg(result.Err().Error())
 		return
 	}
 	return true
