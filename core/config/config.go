@@ -47,12 +47,13 @@ type MongoDBConfig struct {
 }
 
 type RedisDBConfig struct {
-	RDB_HOST string `json:"rdb_host"`
-	RDB_PORT string `json:"rdb_port"`
-	RDB_USER string `json:"rdb_user"`
-	RDB_PASS string `json:"rdb_pass"`
-	RDB_DB   int64  `json:"rdb_db"`
-	RDB_DSN  string `json:"-"`
+	RDB_HOST       string `json:"rdb_host"`
+	RDB_PORT       string `json:"rdb_port"`
+	RDB_USER       string `json:"rdb_user"`
+	RDB_PASS       string `json:"rdb_pass"`
+	RDB_DB         int64  `json:"rdb_db"`
+	RDB_DSN        string `json:"-"`
+	PUBSUB_CHANNEL string `json:"-"`
 }
 
 type PGSQLConfig struct {
