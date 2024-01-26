@@ -20,11 +20,14 @@ type RedisClientInterface interface {
 	SaveHSetData(ctx context.Context, key, field string, value interface{}) (ok bool)
 	ReadHSetData(ctx context.Context, key string) (data map[string]string, err error)
 	DeleteAllHSetData(ctx context.Context, key string) (ok bool)
+	Publish(ctx context.Context, message []byte) error
+	Subscriber(ctx context.Context, callback func(msg *redis.Message))
 }
 
 type redis_client struct {
-	rdb        *redis.Client
-	modifyLock sync.RWMutex
+	rdb               *redis.Client
+	modifyLock        sync.RWMutex
+	pubSubChannelName string
 }
 
 func New(conf *config.Config) RedisClientInterface {
@@ -80,6 +83,13 @@ func New(conf *config.Config) RedisClientInterface {
 
 	rc := &redis_client{
 		rdb: redis.NewClient(opt),
+	}
+
+	SRV_RDB_PUBSUB_CHANNEL, ok := os.LookupEnv("SRV_RDB_PUBSUB_CHANNEL")
+	if !ok {
+		log.Info().Msg("Se o Redis usa pubsub a variável SRV_RDB_PUBSUB_CHANNEL é necessária!")
+	} else {
+		rc.pubSubChannelName = SRV_RDB_PUBSUB_CHANNEL
 	}
 
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second*12)
@@ -165,4 +175,91 @@ func (rs *redis_client) DeleteAllHSetData(ctx context.Context, key string) (ok b
 		return
 	}
 	return true
+}
+
+// Publish envia uma mensagem para um canal específico no Redis.
+//
+// Esta função recebe um contexto (ctx), um nome de canal (channel) e uma
+// mensagem (message) como parâmetros. A mensagem é do tipo []byte, permitindo
+// a publicação de dados em vários formatos, incluindo strings convertidas para
+// slice de bytes.
+//
+// Args:
+//
+//	ctx (context.Context): O contexto para controlar a execução e o cancelamento
+//	    desta função. Pode ser usado para controlar timeouts e cancelamentos.
+//	message ([]byte): A mensagem a ser publicada no canal especificado. Deve ser
+//	    um slice de bytes, proporcionando flexibilidade para o formato da mensagem.
+//
+// Returns:
+//
+//	error: Retorna um erro caso a publicação da mensagem falhe. Isso pode acontecer
+//	    devido a problemas de conexão com o servidor Redis ou outros erros de rede.
+//	    Em caso de sucesso, retorna nil.
+//
+// A função tenta publicar a mensagem no canal especificado através do cliente Redis
+// (rs.rdb). Em caso de falha na publicação, um erro é registrado e retornado.
+// Se a publicação for bem-sucedida, a função retorna nil, indicando que a operação
+// foi realizada sem erros.
+//
+// Exemplo de Uso:
+//
+//	err := redisClient.Publish(ctx, []byte("minha mensagem"))
+//	if err != nil {
+//	    // Tratar erro
+//	}
+func (rs *redis_client) Publish(ctx context.Context, message []byte) error {
+	err := rs.rdb.Publish(ctx, rs.pubSubChannelName, message).Err()
+	if err != nil {
+		log.Error().Str("Error to publish message: ", err.Error())
+		return err
+	}
+
+	return nil
+}
+
+// Subscriber cria uma inscrição em um canal específico no Redis e processa
+// mensagens recebidas através de um callback fornecido.
+//
+// Esta função configura uma inscrição em um canal do Redis. Quando mensagens
+// são publicadas no canal especificado, a função de callback fornecida é chamada
+// para cada mensagem recebida. Esta função permite o processamento assíncrono de
+// mensagens utilizando goroutines.
+//
+// Args:
+//
+//	ctx (context.Context): O contexto para controlar a execução e o cancelamento
+//	    da inscrição e processamento de mensagens. Pode ser usado para gerenciar
+//	    timeouts e cancelamentos.
+//	callback (func(msg *redis.Message)): Uma função de callback que será chamada
+//	    para cada mensagem recebida no canal. A função recebe uma mensagem do tipo
+//	    *redis.Message como argumento.
+//
+// A função cria uma inscrição no canal especificado utilizando o cliente Redis (rs.rdb).
+// Após a inscrição, a função entra em um laço, ouvindo mensagens. Cada mensagem recebida
+// é processada em uma nova goroutine, utilizando a função de callback fornecida.
+//
+// Após o término do laço (quando o canal de mensagens é fechado), a função registra
+// um log indicando que a inscrição no canal especificado foi encerrada.
+//
+// É importante garantir que o contexto passado para esta função seja adequadamente
+// gerenciado, pois ele controla o ciclo de vida da inscrição e o processamento das mensagens.
+//
+// Exemplo de Uso:
+//
+//	callback := func(msg *redis.Message) {
+//	    fmt.Println(msg.Channel, msg.Payload)
+//	}
+//	redisClient.Subscriber(ctx, callback)
+func (rs *redis_client) Subscriber(ctx context.Context, callback func(msg *redis.Message)) {
+	pubsub := rs.rdb.Subscribe(ctx, rs.pubSubChannelName)
+	defer pubsub.Close()
+
+	ch := pubsub.Channel()
+	log.Info().Msg(fmt.Sprintf("subscribed to channel: %q", rs.pubSubChannelName))
+	for msg := range ch {
+		go callback(msg)
+	}
+
+	log.Info().Msg(fmt.Sprintf("subscribed to channel: %q is closed", rs.pubSubChannelName))
 }
