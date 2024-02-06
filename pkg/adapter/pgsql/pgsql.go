@@ -1,7 +1,6 @@
 package pgsql
 
 import (
-	"context"
 	"database/sql"
 	"fmt"
 	"os"
@@ -15,13 +14,11 @@ import (
 
 type DatabaseInterface interface {
 	GetDB() *sql.DB
-	GetConn() *sql.Conn
 	CloseConnection() error
 }
 
 type dabase_pool struct {
-	db   *sql.DB
-	conn *sql.Conn
+	db *sql.DB
 }
 
 var dbpool = &dabase_pool{}
@@ -150,12 +147,8 @@ func (d *dabase_pool) GetDB() *sql.DB {
 	return d.db
 }
 
-func (d *dabase_pool) GetConn() *sql.Conn {
-	return d.conn
-}
-
 func pgConn(conf *config.Config) *dabase_pool {
-	if dbpool != nil && dbpool.db != nil && dbpool.conn != nil {
+	if dbpool != nil && dbpool.db != nil {
 		return dbpool
 	}
 
@@ -172,14 +165,8 @@ func pgConn(conf *config.Config) *dabase_pool {
 		log.Fatal().Str("FunctionName", "pgConn").Str("ERROR_CONNECTION_PING", "Falha ao tentar fazer o ping da conexão").Msg(err.Error())
 	}
 
-	conn, err := db.Conn(context.Background())
-	if err != nil {
-		log.Fatal().Str("FunctionName", "pgConn").Str("ERROR_CONNECTION_GET", "Falha ao tentar recuperar a conexão").Msg(err.Error())
-	}
-
 	dbpool = &dabase_pool{
-		db:   db,
-		conn: conn,
+		db: db,
 	}
 
 	log.Info().Str("FunctionName", "pgConn").Str("CONNECTION_STATUS", "Open").Msg("PGSQL connection Open successfully")
@@ -188,7 +175,7 @@ func pgConn(conf *config.Config) *dabase_pool {
 }
 
 func (d *dabase_pool) CloseConnection() error {
-	if err := d.conn.Close(); err != nil {
+	if err := d.db.Close(); err != nil {
 		log.Fatal().Str("FunctionName", "pgConn").Str("ERROR_CONNECTION_CLOSE", "Falha ao tentar fechar a conexão com o banco de dados").Msg(err.Error())
 		return err
 	}
