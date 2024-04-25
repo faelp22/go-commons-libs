@@ -31,7 +31,7 @@ type Exchange struct {
 }
 
 func (rbm *Rbm_pool) SimpleQueueDeclare(sq Queue) (queue amqp.Queue, err error) {
-	queue, err = rbm.channel.QueueDeclare(
+	queue, err = rbm.Channel.QueueDeclare(
 		sq.Name,       // name
 		sq.Durable,    // durable
 		sq.AutoDelete, // delete when unused
@@ -51,7 +51,7 @@ func (rbm *Rbm_pool) SimpleQueueDeclare(sq Queue) (queue amqp.Queue, err error) 
 func (rbm *Rbm_pool) CompleteQueueDeclare(cq []Queue) []error {
 	var listErrors []error
 	for _, queue := range cq {
-		if _, err := rbm.channel.QueueDeclare(
+		if _, err := rbm.Channel.QueueDeclare(
 			queue.Name,       // name
 			queue.Durable,    // durable
 			queue.AutoDelete, // delete when unused
@@ -65,7 +65,7 @@ func (rbm *Rbm_pool) CompleteQueueDeclare(cq []Queue) []error {
 
 		if queue.Binds != nil {
 			for _, bind := range *queue.Binds {
-				if err := rbm.channel.QueueBind(
+				if err := rbm.Channel.QueueBind(
 					queue.Name,
 					bind.BindingKey,
 					bind.ExchangeName,
@@ -83,7 +83,7 @@ func (rbm *Rbm_pool) CompleteQueueDeclare(cq []Queue) []error {
 }
 
 func (rbm *Rbm_pool) SimpleExchangeDeclare(se Exchange) error {
-	if err := rbm.channel.ExchangeDeclare(
+	if err := rbm.Channel.ExchangeDeclare(
 		se.Name,       // name
 		se.Kind,       // kind of exchange. ex: 'direct' | 'topic' | 'fanout'
 		se.Durable,    // durable
@@ -102,7 +102,7 @@ func (rbm *Rbm_pool) SimpleExchangeDeclare(se Exchange) error {
 func (rbm *Rbm_pool) CompleteExchangeDeclare(ce []Exchange) []error {
 	var listErrors []error
 	for _, exchange := range ce {
-		if err := rbm.channel.ExchangeDeclare(
+		if err := rbm.Channel.ExchangeDeclare(
 			exchange.Name,       // name
 			exchange.Kind,       // kind of exchange. ex: 'direct' | 'topic' | 'fanout'
 			exchange.Durable,    // durable

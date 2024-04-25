@@ -16,7 +16,7 @@ type ConsumerConfig struct {
 	NoLocal          bool
 	NoWait           bool
 	Args             amqp.Table
-	ControlQosConfig ControlQosConfig
+	ControlQosConfig *ControlQosConfig
 }
 
 type ControlQosConfig struct {
@@ -27,8 +27,8 @@ type ControlQosConfig struct {
 
 func (rbm *Rbm_pool) Consumer(cc *ConsumerConfig, callback func(msg *amqp.Delivery)) {
 
-	if cc.ControlQosConfig.PrefetchCount > 0 {
-		err := rbm.channel.Qos(cc.ControlQosConfig.PrefetchCount, cc.ControlQosConfig.PrefetchSize, cc.ControlQosConfig.Global)
+	if cc.ControlQosConfig != nil {
+		err := rbm.Channel.Qos(cc.ControlQosConfig.PrefetchCount, cc.ControlQosConfig.PrefetchSize, cc.ControlQosConfig.Global)
 		if err != nil {
 			log.Error().Str("FunctionName", "Consumer").Str("ERRO_CONSUMER", "Failed to set QoS").Msg(err.Error())
 			return
@@ -39,7 +39,7 @@ func (rbm *Rbm_pool) Consumer(cc *ConsumerConfig, callback func(msg *amqp.Delive
 		cc.Consumer = rbm.conf.AppName
 	}
 
-	msgs, err := rbm.channel.Consume(
+	msgs, err := rbm.Channel.Consume(
 		cc.Queue,     // queue
 		cc.Consumer,  // consumer
 		cc.AutoAck,   // auto-ack

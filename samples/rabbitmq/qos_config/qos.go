@@ -122,7 +122,7 @@ func (ts *taskService) Run() {
 
 	cc := &rabbitmq.ConsumerConfig{
 		Queue: QUEUE_NAME,
-		ControlQosConfig: rabbitmq.ControlQosConfig{
+		ControlQosConfig: &rabbitmq.ControlQosConfig{
 			PrefetchCount: 1,
 			PrefetchSize:  0,
 			Global:        false,

@@ -58,7 +58,7 @@ type RabbitInterface interface {
 
 type Rbm_pool struct {
 	conn                 *amqp.Connection
-	channel              *amqp.Channel
+	Channel              *amqp.Channel
 	conf                 *config.Config
 	err                  chan error
 	MAXX_RECONNECT_TIMES int
@@ -105,14 +105,14 @@ func (rbm *Rbm_pool) Connect() (RabbitInterface, error) {
 	notifyConnClose := make(chan *amqp.Error)
 	rbm.conn.NotifyClose(notifyConnClose) // Listen to Connection NotifyClose
 
-	rbm.channel, err = rbm.conn.Channel()
+	rbm.Channel, err = rbm.conn.Channel()
 	if err != nil {
 		log.Warn().Str("FunctionName", "Connect>rbm.conn.Channel()").Msg("Erro to Connect in RabbitMQ Channel")
 		return rbm, err
 	}
 
 	notifyChanClose := make(chan *amqp.Error)
-	rbm.channel.NotifyClose(notifyChanClose) // Listen to Channel NotifyClose
+	rbm.Channel.NotifyClose(notifyChanClose) // Listen to Channel NotifyClose
 
 	go func() {
 		select {
