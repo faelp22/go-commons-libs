@@ -20,7 +20,7 @@ type ProducerConfig struct {
 }
 
 func (rbm *Rbm_pool) Producer(ctx context.Context, pc *ProducerConfig, msg *Message) error {
-	err := rbm.channel.PublishWithContext(ctx,
+	err := rbm.Channel.PublishWithContext(ctx,
 		pc.Exchange,  // exchange
 		pc.Key,       // routing key
 		pc.Mandatory, // mandatory
