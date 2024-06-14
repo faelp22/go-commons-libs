@@ -54,6 +54,10 @@ type RabbitInterface interface {
 	// RabbitMQ service currently running. You can define this number by setting an env variable called
 	// SRV_RMQ_MAXX_RECONNECT_TIMES
 	StartConsumer(cc *ConsumerConfig, callback func(msg *amqp.Delivery))
+
+	GetAmqpConnection() *amqp.Connection
+
+	GetAmqpChannel() *amqp.Channel
 }
 
 type Rbm_pool struct {
@@ -134,6 +138,14 @@ func (rbm *Rbm_pool) Connect() (RabbitInterface, error) {
 
 func (rbm *Rbm_pool) GetConnect() *Rbm_pool {
 	return rbm
+}
+
+func (rbm *Rbm_pool) GetAmqpConnection() *amqp.Connection {
+	return rbm.conn
+}
+
+func (rbm *Rbm_pool) GetAmqpChannel() *amqp.Channel {
+	return rbm.Channel
 }
 
 func (rbm *Rbm_pool) GetConnectStatus() bool {
