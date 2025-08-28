@@ -7,12 +7,10 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/phuslu/log"
-
-	"github.com/Azure/azure-sdk-for-go/sdk/storage/azblob/blockblob"
-
 	"github.com/Azure/azure-sdk-for-go/sdk/storage/azblob"
+	"github.com/Azure/azure-sdk-for-go/sdk/storage/azblob/blockblob"
 	"github.com/faelp22/go-commons-libs/core/config"
+	"github.com/phuslu/log"
 )
 
 type BlobInfo struct {
