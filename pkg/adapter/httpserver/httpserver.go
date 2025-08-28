@@ -111,8 +111,10 @@ type statusResponseWriter struct {
 }
 
 func (srw *statusResponseWriter) WriteHeader(status int) {
-	srw.status = status
-	srw.ResponseWriter.WriteHeader(status)
+	if srw.status == 0 {
+		srw.status = status
+		srw.ResponseWriter.WriteHeader(status)
+	}
 }
 
 type HttpMsg struct {
