@@ -159,5 +159,7 @@ func (rbm *Rbm_pool) CloseConnection() error {
 	}
 
 	log.Info().Str("FunctionName", "CloseConnection").Msg("RabbitMQ connection closed successfully")
+	rbm.conn = nil
+	rbm.connStatus = false
 	return nil
 }
