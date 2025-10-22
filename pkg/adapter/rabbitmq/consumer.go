@@ -55,7 +55,7 @@ func (rbm *Rbm_pool) Consumer(cc *ConsumerConfig, callback func(msg *amqp.Delive
 	}
 
 	go func() {
-		log.Info().Str("FunctionName", "Consumer").Msg("Close Consumer")
+		log.Info().Str("FunctionName", "Consumer").Msg("Open Consumer")
 		for msg := range msgs {
 			callback(&msg)
 		}

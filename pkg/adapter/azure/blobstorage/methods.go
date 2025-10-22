@@ -93,13 +93,13 @@ func (bs *blobStorage) UploadFile(ctx context.Context, blobName, containerName s
 
 	defer func(file *os.File) {
 		if err = file.Close(); err != nil {
-			log.Error().Str("FuntionName", "WriteToFile").Str("fileName", file.Name()).Msg(fmt.Sprintf("error closing the blob file: %s", err.Error()))
+			log.Error().Str("FunctionName", "WriteToFile").Str("fileName", file.Name()).Msg(fmt.Sprintf("error closing the blob file: %s", err.Error()))
 		}
 	}(fileHandler)
 
 	defer func(name string) {
 		if err = os.Remove(name); err != nil {
-			log.Error().Str("FuntionName", "WriteToFile").Msg(fmt.Sprintf("unnexpected error: %s", err.Error()))
+			log.Error().Str("FunctionName", "WriteToFile").Msg(fmt.Sprintf("unnexpected error: %s", err.Error()))
 		}
 	}(blobName)
 
@@ -133,7 +133,7 @@ func (bs *blobStorage) DownloadFile(ctx context.Context, blobInfo BlobInfo, cont
 
 	defer func(destFile *os.File) {
 		if err = destFile.Close(); err != nil {
-			log.Error().Str("FuntionName", "WriteToFile").Str("fileName", destFile.Name()).Msg(fmt.Sprintf("error closing the blob file: %s", err.Error()))
+			log.Error().Str("FunctionName", "WriteToFile").Str("fileName", destFile.Name()).Msg(fmt.Sprintf("error closing the blob file: %s", err.Error()))
 		}
 	}(destFile)
 
@@ -148,13 +148,13 @@ func (bs *blobStorage) WriteToFile(blobName string, response azblob.DownloadStre
 	stream := streaming.NewResponseProgress(
 		response.Body,
 		func(bytesTransferred int64) {
-			log.Info().Str("FuntionName", "WriteToFile").Msg(fmt.Sprintf("Downloaded %d bytes.\n", bytesTransferred))
+			log.Info().Str("FunctionName", "WriteToFile").Msg(fmt.Sprintf("Downloaded %d bytes.\n", bytesTransferred))
 		},
 	)
 
 	defer func(stream io.ReadCloser) {
 		if err := stream.Close(); err != nil {
-			log.Error().Str("FuntionName", "WriteToFile").Msg(fmt.Sprintf("error closing the blob file: %s", err.Error()))
+			log.Error().Str("FunctionName", "WriteToFile").Msg(fmt.Sprintf("error closing the blob file: %s", err.Error()))
 		}
 	}(stream)
 
@@ -165,7 +165,7 @@ func (bs *blobStorage) WriteToFile(blobName string, response azblob.DownloadStre
 
 	defer func(file *os.File) {
 		if err = file.Close(); err != nil {
-			log.Error().Str("FuntionName", "WriteToFile").Str("fileName", file.Name()).Msg(fmt.Sprintf("error closing the blob file: %s", err.Error()))
+			log.Error().Str("FunctionName", "WriteToFile").Str("fileName", file.Name()).Msg(fmt.Sprintf("error closing the blob file: %s", err.Error()))
 		}
 	}(file)
 
@@ -232,10 +232,10 @@ func (bs *blobStorage) MountFile(ctx context.Context, blockBlobClient *blockblob
 	return nil
 }
 
-// func (bs *blobStorage) createContainer(ctx context.Context, containerName string) error {
-// 	if _, err := bs.Client.CreateContainer(ctx, containerName, nil); err != nil {
-// 		return fmt.Errorf("error creating a blob container: %s", err.Error())
-// 	}
-
-// 	return nil
-// }
+//func (bs *blobStorage) createContainer(ctx context.Context, containerName string) error {
+//	if _, err := bs.Client.CreateContainer(ctx, containerName, nil); err != nil {
+//		return fmt.Errorf("error creating a blob container: %s", err.Error())
+//	}
+//
+//	return nil
+//}
